@@ -1,22 +1,11 @@
 // src/components/MuiButton.tsx
 import * as React from 'react';
-import MuiButton, {
-  type ButtonProps as MuiButtonProps,
-} from '@mui/material/Button';
+import MuiButton, { type ButtonProps as MuiButtonProps } from '@mui/material/Button';
 import { type Theme, useTheme } from '@mui/material/styles';
+import { rawColors } from '@/theme.tsx';
 
 interface CustomButtonProps extends MuiButtonProps {
-  variant?:
-    | 'default'
-    | 'hero'
-    | 'accent'
-    | 'secondary'
-    | 'beauty'
-    | 'outline'
-    | 'outline-beauty'
-    | 'destructive'
-    | 'ghost'
-    | 'link';
+  variant?: 'default' | 'hero' | 'accent' | 'secondary' | 'beauty' | 'outline' | 'outline-beauty' | 'destructive' | 'ghost' | 'link';
   size?: 'default' | 'sm' | 'lg' | 'xl' | 'icon';
 }
 
@@ -91,7 +80,7 @@ const variantStyles = (theme: Theme) => ({
   },
   outline: {
     border: `1px solid ${theme.palette.custom.gray[200]}`,
-    backgroundColor: theme.palette.background.default,
+    backgroundColor: 'transparent',
     color: theme.palette.text.primary,
     '&:hover': {
       backgroundColor: theme.palette.custom.accent[500],
@@ -126,11 +115,11 @@ const variantStyles = (theme: Theme) => ({
   link: {
     backgroundColor: 'transparent',
     color: theme.palette.primary.main,
-    textDecoration: 'underline',
+    textDecoration: 'none',
     textUnderlineOffset: 4,
     '&:hover': {
-      backgroundColor: 'transparent',
-      textDecoration: 'underline',
+      color: theme.palette.primary.dark,
+      backgroundColor: rawColors.primary['50'],
     },
   },
 });
@@ -139,27 +128,27 @@ const sizeStyles = {
   default: {
     height: 40,
     padding: '8px 16px',
-    borderRadius: 2,
+    borderRadius: '0.5rem',
   },
   sm: {
     height: 36,
     padding: '6px 12px',
     fontSize: '0.75rem',
-    borderRadius: 8,
+    borderRadius: '0.75rem',
   },
   lg: {
     height: 48,
     padding: '12px 32px',
     fontSize: '1rem',
     fontWeight: 'medium',
-    borderRadius: 12,
+    borderRadius: '0.75rem',
   },
   xl: {
     height: 56,
     padding: '16px 40px',
     fontSize: '1.125rem',
     fontWeight: 'medium',
-    borderRadius: 16,
+    borderRadius: '1rem',
   },
   icon: {
     height: 40,
@@ -169,48 +158,46 @@ const sizeStyles = {
   },
 };
 
-const Button = React.forwardRef<HTMLButtonElement, CustomButtonProps>(
-  ({ children, variant = 'default', size = 'default', ...props }, ref) => {
-    const theme = useTheme();
+const Button = React.forwardRef<HTMLButtonElement, CustomButtonProps>(({ children, variant = 'default', size = 'default', ...props }, ref) => {
+  const theme = useTheme();
 
-    const getVariantStyles = () => variantStyles(theme)[variant];
-    const getSizeStyles = () => sizeStyles[size];
+  const getVariantStyles = () => variantStyles(theme)[variant];
+  const getSizeStyles = () => sizeStyles[size];
 
-    return (
-      <MuiButton
-        ref={ref}
-        disableElevation
-        sx={{
-          display: 'inline-flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          gap: theme.spacing(1),
-          whiteSpace: 'nowrap',
-          transition: 'all 300ms cubic-bezier(0.4, 0, 0.2, 1)',
-          pointerEvents: props.disabled ? 'none' : 'auto',
-          opacity: props.disabled ? 0.5 : 1,
-          fontFamily: theme.typography.fontFamily,
-          '&:focus-visible': {
-            outline: 'none',
-            boxShadow: `0 0 0 2px ${theme.palette.text.primary}`,
-            outlineOffset: 2,
-          },
-          '& svg': {
-            pointerEvents: 'none',
-            width: 16,
-            height: 16,
-            flexShrink: 0,
-          },
-          ...getVariantStyles(),
-          ...getSizeStyles(),
-        }}
-        {...props}
-      >
-        {children}
-      </MuiButton>
-    );
-  }
-);
+  return (
+    <MuiButton
+      ref={ref}
+      disableElevation
+      sx={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: theme.spacing(1),
+        whiteSpace: 'nowrap',
+        transition: 'all 300ms cubic-bezier(0.4, 0, 0.2, 1)',
+        pointerEvents: props.disabled ? 'none' : 'auto',
+        opacity: props.disabled ? 0.5 : 1,
+        fontFamily: theme.typography.fontFamily,
+        '&:focus-visible': {
+          outline: 'none',
+          boxShadow: `0 0 0 2px ${theme.palette.text.primary}`,
+          outlineOffset: 2,
+        },
+        '& svg': {
+          pointerEvents: 'none',
+          width: 16,
+          height: 16,
+          flexShrink: 0,
+        },
+        ...getVariantStyles(),
+        ...getSizeStyles(),
+      }}
+      {...props}
+    >
+      {children}
+    </MuiButton>
+  );
+});
 Button.displayName = 'Button';
 
 export { Button };

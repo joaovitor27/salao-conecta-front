@@ -1,7 +1,7 @@
 // src/theme.ts
 import { createTheme } from '@mui/material/styles';
 
-const rawColors = {
+export const rawColors = {
   // Cores Core do Design System
   // Os valores HSL originais eram:
   // --background: 0 0% 100%; -> #ffffff
@@ -17,11 +17,11 @@ const rawColors = {
     200: '#b6c6d7',
     300: '#91aac1',
     400: '#6d8eab',
-    500: '#487295', // HSL(215, 45%, 25%) -> #487295 (azul marinho mais profundo)
-    600: '#3c607f',
-    700: '#2f4e69',
-    800: '#233d53',
-    900: '#162b3d',
+    500: '#233b5c', // HSL(215, 45%, 25%) -> #487295 (azul marinho mais profundo)
+    600: '#223c5e',
+    700: '#1a365d',
+    800: '#16345e',
+    900: '#13315d',
     light: '#6d8eab', // Ajustado para ser mais próximo de 215 35% 35%
     glow: 'rgba(109, 142, 171, 0.65)', // Usado para shadow-glow (HSL(215, 55%, 65%))
   },
@@ -79,7 +79,7 @@ const rawColors = {
     600: '#949ba3',
     700: '#7c838b',
     800: '#646b72',
-    900: '#4b5259',
+    900: '#2b2f33',
   },
 
   // Semantic Colors (ajustar conforme os rawColors acima)
@@ -94,21 +94,42 @@ const typography = {
   fontFamily: '"Inter", "Segoe UI", Tahoma, Geneva, Verdana, sans-serif',
   h1: {
     fontFamily: '"Montserrat", "Segoe UI", Tahoma, Geneva, Verdana, sans-serif',
+    fontWeight: 700,
+    color: rawColors.primary[500],
+    fontSize: '2.65rem',
+    lineHeight: 1.2,
   },
   h2: {
     fontFamily: '"Montserrat", "Segoe UI", Tahoma, Geneva, Verdana, sans-serif',
+    fontWeight: 700,
+    color: rawColors.primary[500],
+    fontSize: '2rem',
+    lineHeight: 1.2,
   },
   h3: {
     fontFamily: '"Montserrat", "Segoe UI", Tahoma, Geneva, Verdana, sans-serif',
+    fontWeight: 700,
+    color: rawColors.primary[500],
+    fontSize: '1.5rem',
+    lineHeight: 1.2,
   },
   h4: {
     fontFamily: '"Montserrat", "Segoe UI", Tahoma, Geneva, Verdana, sans-serif',
+    fontWeight: 700,
+    fontSize: '1.25rem',
+    lineHeight: 1.2,
   },
   h5: {
     fontFamily: '"Montserrat", "Segoe UI", Tahoma, Geneva, Verdana, sans-serif',
+    fontWeight: 700,
+    fontSize: '1rem',
+    lineHeight: 1.2,
   },
   h6: {
     fontFamily: '"Montserrat", "Segoe UI", Tahoma, Geneva, Verdana, sans-serif',
+    fontWeight: 700,
+    fontSize: '0.875rem',
+    lineHeight: 1.2,
   },
   caption: {
     color: rawColors.muted.foreground,
@@ -117,7 +138,8 @@ const typography = {
     lineHeight: 1.5,
   },
   body1: {
-    fontSize: '1rem',
+    color: rawColors.gray[900],
+    fontSize: '1.02rem',
     fontWeight: 400,
     lineHeight: 1.5,
   },
@@ -134,7 +156,7 @@ const theme = createTheme({
     primary: {
       main: rawColors.primary[500],
       light: rawColors.primary.light, // Usando a nova propriedade light
-      dark: rawColors.primary[700],
+      dark: rawColors.primary[800],
       contrastText: '#fff', // Para a maioria dos botões primary, white é bom
     },
     secondary: {
@@ -158,6 +180,10 @@ const theme = createTheme({
       contrastText: '#fff',
     },
     custom: {
+      muted: {
+        DEFAULT: rawColors.muted.DEFAULT,
+        foreground: rawColors.muted.foreground,
+      },
       beauty: {
         purple: rawColors.beauty.purple,
         pink: rawColors.beauty.pink,
