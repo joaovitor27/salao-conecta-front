@@ -14,7 +14,7 @@ import MenuIcon from '@mui/icons-material/Menu';
 import { Button } from '@/components/ui/Button';
 
 interface HeaderProps {
-  variant?: 'b2b' | 'b2c' | 'auth';
+  variant?: 'b2b' | 'b2c' | 'auth' | 'home';
   showNotifications?: boolean;
   userName?: string;
 }
@@ -25,6 +25,7 @@ export const Header = ({ variant = 'b2c', showNotifications = false, userName }:
   const isB2B = variant === 'b2b';
   const isB2C = variant === 'b2c';
   const isAuth = variant === 'auth';
+  const isHome = variant === 'home';
 
   return (
     <AppBar
@@ -129,8 +130,17 @@ export const Header = ({ variant = 'b2c', showNotifications = false, userName }:
             </React.Fragment>
           )}
 
+          {isHome && (
+            <React.Fragment>
+              <Button variant="outline">Entrar</Button>
+              <Button variant="hero" size="sm">
+                Cadastrar
+              </Button>
+            </React.Fragment>
+          )}
+
           {isAuth && (
-            <Box sx={{ fontSize: '0.875rem', color: theme.palette.text.secondary, alignItems: 'flex-end', gap: 1, textAlign: 'right'}}>
+            <Box sx={{ fontSize: '0.875rem', color: theme.palette.text.secondary, alignItems: 'flex-end', gap: 1, textAlign: 'right' }}>
               Já tem uma conta?{' '}
               <Link href="#" sx={{ color: theme.palette.primary.main, '&:hover': { textDecoration: 'underline' } }}>
                 Entre aqui

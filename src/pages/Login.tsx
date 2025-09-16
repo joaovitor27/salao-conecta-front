@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { type SyntheticEvent, useEffect, useState } from 'react';
 import { useTheme } from '@mui/material/styles';
 import Box from '@mui/material/Box';
 import Grid from '@mui/material/Grid';
@@ -11,12 +11,11 @@ import { styled } from '@mui/material/styles';
 import ScissorsIcon from '@mui/icons-material/ContentCut';
 import SmartphoneIcon from '@mui/icons-material/Smartphone';
 import ShieldIcon from '@mui/icons-material/Security';
-import { Button } from '@/components/ui/Button.tsx';
-import { Header } from '@/components/Header.tsx';
+import { Button } from '@/components/ui/Button';
+import { Header } from '@/components/Header';
 
 import UsersIcon from '@mui/icons-material/People';
-import { FormControl, IconButton, InputAdornment, InputLabel, OutlinedInput } from '@mui/material';
-import { Visibility, VisibilityOff } from '@mui/icons-material';
+import { PasswordField } from '@/components/PasswordField';
 
 const StyledCard = styled(Paper)(({ theme }) => ({
   width: '100%',
@@ -30,22 +29,16 @@ const StyledCard = styled(Paper)(({ theme }) => ({
 
 export const Login = () => {
   const [userType, setUserType] = useState<'client' | 'salon'>('client');
-  const [showPassword, setShowPassword] = React.useState(false);
-
-  const handleClickShowPassword = () => setShowPassword((show) => !show);
-
-  const handleMouseDownPassword = (event: React.MouseEvent<HTMLButtonElement>) => {
-    event.preventDefault();
-  };
-
-  const handleMouseUpPassword = (event: React.MouseEvent<HTMLButtonElement>) => {
-    event.preventDefault();
-  };
+  const [password, setPassword] = useState('');
   const theme = useTheme();
 
-  const handleTabChange = (_event: React.SyntheticEvent, newValue: string) => {
+  const handleTabChange = (_event: SyntheticEvent, newValue: string) => {
     setUserType(newValue as 'client' | 'salon');
   };
+
+  useEffect(() => {
+    setPassword('');
+  }, [userType]);
 
   return (
     <Box
@@ -231,27 +224,7 @@ export const Login = () => {
                 <Box>
                   <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                     <TextField id="salon-email" label="E-mail do Salão" type="email" placeholder="salao@email.com" fullWidth />
-                    <FormControl variant="outlined">
-                      <InputLabel htmlFor="outlined-adornment-password">Senha</InputLabel>
-                      <OutlinedInput
-                        id="outlined-adornment-password"
-                        type={showPassword ? 'text' : 'password'}
-                        endAdornment={
-                          <InputAdornment position="end">
-                            <IconButton
-                              aria-label={showPassword ? 'Ocultar senha' : 'Exibir senha'}
-                              onClick={handleClickShowPassword}
-                              onMouseDown={handleMouseDownPassword}
-                              onMouseUp={handleMouseUpPassword}
-                              edge="end"
-                            >
-                              {showPassword ? <VisibilityOff /> : <Visibility />}
-                            </IconButton>
-                          </InputAdornment>
-                        }
-                        label="Password"
-                      />
-                    </FormControl>
+                    <PasswordField password={password} setPassword={setPassword} />
                     <Button variant="hero" size="lg">
                       Entrar como Salão
                     </Button>
@@ -261,27 +234,7 @@ export const Login = () => {
                 <Box>
                   <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                     <TextField id="client-email" label="E-mail" type="email" placeholder="seu@email.com" fullWidth />
-                    <FormControl variant="outlined">
-                      <InputLabel htmlFor="outlined-adornment-password">Senha</InputLabel>
-                      <OutlinedInput
-                        id="outlined-adornment-password"
-                        type={showPassword ? 'text' : 'password'}
-                        endAdornment={
-                          <InputAdornment position="end">
-                            <IconButton
-                              aria-label={showPassword ? 'Ocultar senha' : 'Exibir senha'}
-                              onClick={handleClickShowPassword}
-                              onMouseDown={handleMouseDownPassword}
-                              onMouseUp={handleMouseUpPassword}
-                              edge="end"
-                            >
-                              {showPassword ? <VisibilityOff /> : <Visibility />}
-                            </IconButton>
-                          </InputAdornment>
-                        }
-                        label="Password"
-                      />
-                    </FormControl>
+                    <PasswordField password={password} setPassword={setPassword} />
                     <Button variant="hero" size="lg">
                       Entrar como Cliente
                     </Button>
@@ -296,7 +249,7 @@ export const Login = () => {
               </Box>
 
               <Box sx={{ mt: 4, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
-                <Typography variant="body1" sx={{ color: theme.palette.custom.muted.foreground }}>
+                <Typography variant="caption">
                   Ainda não tem uma conta?
                 </Typography>
                 <Button variant="outline" fullWidth size="lg" onClick={() => {}}>

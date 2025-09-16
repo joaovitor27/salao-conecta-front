@@ -112,7 +112,7 @@ export default function Home() {
 
   return (
     <Box sx={{ minHeight: '100vh', bgcolor: 'background.paper' }}>
-      <Header />
+      <Header variant={'home'}/>
       <Box component="section" sx={{ position: 'relative', py: 10, overflow: 'hidden' }}>
         <Box
           sx={{
