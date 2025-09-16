@@ -8,8 +8,6 @@ import Tabs from '@mui/material/Tabs';
 import Tab from '@mui/material/Tab';
 import TextField from '@mui/material/TextField';
 import { styled } from '@mui/material/styles';
-
-// Ícones do MUI
 import ScissorsIcon from '@mui/icons-material/ContentCut';
 import SmartphoneIcon from '@mui/icons-material/Smartphone';
 import ShieldIcon from '@mui/icons-material/Security';
@@ -232,13 +230,7 @@ export const Login = () => {
               {userType === 'salon' ? (
                 <Box>
                   <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                    <TextField
-                      id="salon-email"
-                      label="E-mail do Salão"
-                      type="email"
-                      placeholder="salao@email.com"
-                      fullWidth
-                    />
+                    <TextField id="salon-email" label="E-mail do Salão" type="email" placeholder="salao@email.com" fullWidth />
                     <FormControl variant="outlined">
                       <InputLabel htmlFor="outlined-adornment-password">Senha</InputLabel>
                       <OutlinedInput
@@ -268,13 +260,7 @@ export const Login = () => {
               ) : (
                 <Box>
                   <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                    <TextField
-                      id="client-email"
-                      label="E-mail"
-                      type="email"
-                      placeholder="seu@email.com"
-                      fullWidth
-                    />
+                    <TextField id="client-email" label="E-mail" type="email" placeholder="seu@email.com" fullWidth />
                     <FormControl variant="outlined">
                       <InputLabel htmlFor="outlined-adornment-password">Senha</InputLabel>
                       <OutlinedInput

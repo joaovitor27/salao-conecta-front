@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { Login } from './pages/Login';
+import Home from '@/pages/Home.tsx';
 // import { type SyntheticEvent, useState } from 'react';
 // import { Button } from 'components/ui/Button';
 // import { Box } from '@mui/material';
@@ -14,9 +15,10 @@ function App() {
 
   return (
     <>
-      <BrowserRouter>
+      <BrowserRouter basename={'/'}>
         <Routes>
-          <Route path="/" element={<Login />} />
+          <Route path="/" element={<Home />} />
+          <Route path="login" element={<Login />} />
         </Routes>
       </BrowserRouter>
       {/*<Box sx={{ display: 'flex', gap: 2, p: 4, flexWrap: 'wrap' }}>*/}
