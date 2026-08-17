@@ -7,11 +7,12 @@ import Typography from '@mui/material/Typography';
 import Link from '@mui/material/Link';
 import { useTheme } from '@mui/material/styles';
 
-// Ícones do MUI
 import BellIcon from '@mui/icons-material/Notifications';
 import UserIcon from '@mui/icons-material/AccountCircle';
 import MenuIcon from '@mui/icons-material/Menu';
 import { Button } from '@/components/ui/Button';
+import { useAuth } from '@/contexts/AuthContext.tsx';
+import { useNavigate } from 'react-router-dom';
 
 interface HeaderProps {
   variant?: 'b2b' | 'b2c' | 'auth' | 'home';
@@ -21,10 +22,11 @@ interface HeaderProps {
 
 export const Header = ({ variant = 'b2c', showNotifications = false, userName }: HeaderProps) => {
   const theme = useTheme();
+  const { signOut } = useAuth();
+  const navigate = useNavigate();
 
   const isB2B = variant === 'b2b';
   const isB2C = variant === 'b2c';
-  const isAuth = variant === 'auth';
   const isHome = variant === 'home';
 
   return (
@@ -40,28 +42,30 @@ export const Header = ({ variant = 'b2c', showNotifications = false, userName }:
     >
       <Toolbar sx={{ height: 'auto', margin: 'auto', px: 2, maxWidth: 1280, width: '100%' }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-          {/*<Box component="img" src={'logo'} alt="Salão Conecta" sx={{ height: 32, width: 32 }} />*/}
-          <Box>
-            <Typography
-              variant="h4"
-              sx={{
-                color: theme.palette.primary.main,
-                fontFamily: theme.typography.h1.fontFamily,
-              }}
-            >
-              Salão Conecta
-            </Typography>
-            <Typography
-              variant="body2"
-              sx={{
-                fontSize: '0.75rem',
-                color: theme.palette.custom.muted.foreground,
-                fontFamily: theme.typography.fontFamily,
-              }}
-            >
-              A beleza na palma da sua mão
-            </Typography>
-          </Box>
+          <Link href="/" underline="none" sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+            {/*<Box component="img" src={'logo'} alt="Salão Conecta" sx={{ height: 32, width: 32 }} />*/}
+            <Box>
+              <Typography
+                variant="h4"
+                sx={{
+                  color: theme.palette.primary.main,
+                  fontFamily: theme.typography.h1.fontFamily,
+                }}
+              >
+                Salão Conecta
+              </Typography>
+              <Typography
+                variant="body2"
+                sx={{
+                  fontSize: '0.75rem',
+                  color: theme.palette.custom.muted.foreground,
+                  fontFamily: theme.typography.fontFamily,
+                }}
+              >
+                A beleza na palma da sua mão
+              </Typography>
+            </Box>
+          </Link>
         </Box>
 
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, ml: 'auto' }}>
@@ -87,6 +91,9 @@ export const Header = ({ variant = 'b2c', showNotifications = false, userName }:
                 <Link href="#" underline="hover" sx={{ color: theme.palette.text.primary }}>
                   Relatórios
                 </Link>
+                <Button variant="outline" onClick={() => signOut()}>
+                  Sair
+                </Button>
               </Box>
               {showNotifications && (
                 <Button variant="ghost" size="icon">
@@ -132,20 +139,10 @@ export const Header = ({ variant = 'b2c', showNotifications = false, userName }:
 
           {isHome && (
             <React.Fragment>
-              <Button variant="outline">Entrar</Button>
-              <Button variant="hero" size="sm">
-                Cadastrar
+              <Button variant="hero" size="sm" onClick={() => navigate('/login')}>
+                Entrar
               </Button>
             </React.Fragment>
-          )}
-
-          {isAuth && (
-            <Box sx={{ fontSize: '0.875rem', color: theme.palette.text.secondary, alignItems: 'flex-end', gap: 1, textAlign: 'right' }}>
-              Já tem uma conta?{' '}
-              <Link href="#" sx={{ color: theme.palette.primary.main, '&:hover': { textDecoration: 'underline' } }}>
-                Entre aqui
-              </Link>
-            </Box>
           )}
 
           <Button variant="ghost" size="icon" sx={{ display: { xs: 'flex', md: 'none' } }}>

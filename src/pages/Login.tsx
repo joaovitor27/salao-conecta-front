@@ -1,11 +1,10 @@
-import { type SyntheticEvent, useEffect, useState } from 'react';
+import { type FormEvent, useState } from 'react';
 import { useTheme } from '@mui/material/styles';
 import Box from '@mui/material/Box';
 import Grid from '@mui/material/Grid';
 import Typography from '@mui/material/Typography';
 import Paper from '@mui/material/Paper';
-import Tabs from '@mui/material/Tabs';
-import Tab from '@mui/material/Tab';
+
 import TextField from '@mui/material/TextField';
 import { styled } from '@mui/material/styles';
 import ScissorsIcon from '@mui/icons-material/ContentCut';
@@ -16,6 +15,8 @@ import { Header } from '@/components/Header';
 
 import UsersIcon from '@mui/icons-material/People';
 import { PasswordField } from '@/components/PasswordField';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '@/contexts/AuthContext.tsx';
 
 const StyledCard = styled(Paper)(({ theme }) => ({
   width: '100%',
@@ -28,17 +29,23 @@ const StyledCard = styled(Paper)(({ theme }) => ({
 }));
 
 export const Login = () => {
-  const [userType, setUserType] = useState<'client' | 'salon'>('client');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
   const theme = useTheme();
+  const { signIn } = useAuth();
+  const navigate = useNavigate();
 
-  const handleTabChange = (_event: SyntheticEvent, newValue: string) => {
-    setUserType(newValue as 'client' | 'salon');
+  const handleLogin = async (e: FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    try {
+      await signIn(email, password);
+      navigate('/app/dashboard');
+    } finally {
+      setLoading(false);
+    }
   };
-
-  useEffect(() => {
-    setPassword('');
-  }, [userType]);
 
   return (
     <Box
@@ -180,67 +187,30 @@ export const Login = () => {
             <StyledCard>
               <Box sx={{ textAlign: 'center', mb: 2 }}>
                 <Typography variant="h3" fontWeight="bold" sx={{ mb: 1 }}>
-                  Bem-vindo de volta
+                  Seja Bem-vindo
                 </Typography>
                 <Typography variant="body2" sx={{ color: theme.palette.text.secondary }}>
                   Entre na sua conta para continuar
                 </Typography>
               </Box>
-
-              <Tabs
-                value={userType}
-                onChange={handleTabChange}
-                aria-label="login tabs"
-                sx={{
-                  mb: 4,
-                  '& .MuiTabs-flexContainer': { gap: 1 },
-                  '& .MuiTabs-indicator': { display: 'none' },
-                  backgroundColor: theme.palette.custom.gray[100],
-                  borderRadius: 8,
-                }}
-              >
-                <Tab
-                  label="Cliente"
-                  value="client"
-                  sx={{
-                    width: '50%',
-                    bgcolor: userType === 'client' ? theme.palette.custom.gray[200] : 'transparent',
-                    borderRadius: 8,
-                    '&.Mui-selected': { color: theme.palette.primary.main, fontWeight: 'bold' },
-                  }}
-                />
-                <Tab
-                  label="Salão"
-                  value="salon"
-                  sx={{
-                    width: '50%',
-                    bgcolor: userType === 'salon' ? theme.palette.custom.gray[200] : 'transparent',
-                    borderRadius: 8,
-                    '&.Mui-selected': { color: theme.palette.primary.main, fontWeight: 'bold' },
-                  }}
-                />
-              </Tabs>
-              {userType === 'salon' ? (
-                <Box>
+              <Box>
+                <form onSubmit={handleLogin}>
                   <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                    <TextField id="salon-email" label="E-mail do Salão" type="email" placeholder="salao@email.com" fullWidth />
+                    <TextField
+                      id="salon-email"
+                      label="E-mail"
+                      type="email"
+                      placeholder="salao@email.com"
+                      fullWidth
+                      onChange={(e) => setEmail(e.target.value)}
+                    />
                     <PasswordField password={password} setPassword={setPassword} />
-                    <Button variant="hero" size="lg">
-                      Entrar como Salão
+                    <Button type="submit" variant="hero" size="lg" disabled={loading}>
+                      {loading ? 'Entrando...' : 'Entrar como Salão'}
                     </Button>
                   </Box>
-                </Box>
-              ) : (
-                <Box>
-                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                    <TextField id="client-email" label="E-mail" type="email" placeholder="seu@email.com" fullWidth />
-                    <PasswordField password={password} setPassword={setPassword} />
-                    <Button variant="hero" size="lg">
-                      Entrar como Cliente
-                    </Button>
-                  </Box>
-                </Box>
-              )}
+                </form>
+              </Box>
 
               <Box sx={{ mt: 2, textAlign: 'center' }}>
                 <Button variant="link" size="sm" fullWidth onClick={() => {}}>
@@ -248,14 +218,12 @@ export const Login = () => {
                 </Button>
               </Box>
 
-              <Box sx={{ mt: 4, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
-                <Typography variant="caption">
-                  Ainda não tem uma conta?
-                </Typography>
-                <Button variant="outline" fullWidth size="lg" onClick={() => {}}>
-                  Criar conta gratuita
-                </Button>
-              </Box>
+              {/*<Box sx={{ mt: 4, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>*/}
+              {/*  <Typography variant="caption">Ainda não tem uma conta?</Typography>*/}
+              {/*  <Button variant="outline" fullWidth size="lg" onClick={() => {}}>*/}
+              {/*    Criar conta gratuita*/}
+              {/*  </Button>*/}
+              {/*</Box>*/}
             </StyledCard>
           </Grid>
         </Grid>

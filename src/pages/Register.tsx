@@ -49,7 +49,6 @@ const Register = () => {
   return (
     <RegisterContainer>
       <Header variant="auth" />
-
       <Box sx={{ maxWidth: 1280, mx: 'auto', px: 2, py: 6 }}>
         <Box sx={{ maxWidth: 700, mx: 'auto' }}>
           {/* Seção Hero */}

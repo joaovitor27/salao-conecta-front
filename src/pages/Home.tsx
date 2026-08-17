@@ -366,12 +366,12 @@ export default function Home() {
           </Typography>
 
           <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, gap: 2, justifyContent: 'center' }}>
-            <Link to="/register" style={{ textDecoration: 'none' }}>
-              <Button size="lg" variant="secondary">
-                Criar Conta Gratuita
-                <ArrowRightIcon sx={{ ml: 1, width: 16, height: 16 }} />
-              </Button>
-            </Link>
+            {/*<Link to="/register" style={{ textDecoration: 'none' }}>*/}
+            {/*  <Button size="lg" variant="secondary">*/}
+            {/*    Criar Conta Gratuita*/}
+            {/*    <ArrowRightIcon sx={{ ml: 1, width: 16, height: 16 }} />*/}
+            {/*  </Button>*/}
+            {/*</Link>*/}
             <Link to="/login" style={{ textDecoration: 'none' }}>
               <Button
                 size="lg"
