@@ -30,7 +30,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       if (token) {
         try {
-          const response = await api.get('/auth/me/');
+          const response = await api.get('/v1/auth/me');
           setUser(response.data);
         } catch (error) {
           localStorage.removeItem('@SalaoConecta:token');
@@ -45,12 +45,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   async function signIn(email: string, password: string) {
     try {
-      const response = await api.post('/auth/login/', { email, password });
+      const response = await api.post('/v1/auth/login', { email, password });
       const { access, refresh } = response.data;
       localStorage.setItem('@SalaoConecta:token', access);
       localStorage.setItem('@SalaoConecta:refreshToken', refresh);
 
-      const userResponse = await api.get('/auth/me/');
+      const userResponse = await api.get('/v1/auth/me');
       setUser(userResponse.data);
       toast.success('Login realizado com sucesso!');
     } catch (error: any) {
@@ -60,7 +60,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   function signOut() {
-    api.post('/auth/logout/', { refresh_token: localStorage.getItem('@SalaoConecta:refreshToken') }).finally(() => {
+    api.post('/v1/auth/logout', { refresh_token: localStorage.getItem('@SalaoConecta:refreshToken') }).finally(() => {
       localStorage.clear();
       setUser(null);
       window.location.href = '/login';

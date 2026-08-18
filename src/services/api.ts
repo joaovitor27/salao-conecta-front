@@ -35,7 +35,7 @@ api.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config;
 
-    if (error.response?.status === 401 && !originalRequest._retry && originalRequest.url !== '/auth/login/') {
+    if (error.response?.status === 401 && !originalRequest._retry && originalRequest.url !== '/v1/auth/login') {
       if (isRefreshing) {
         return new Promise(function (resolve, reject) {
           failedQueue.push({ resolve, reject });
@@ -60,7 +60,7 @@ api.interceptors.response.use(
       }
 
       try {
-        const { data } = await axios.post(`${api.defaults.baseURL}/auth/refresh/`, {
+        const { data } = await axios.post(`${api.defaults.baseURL}/v1/auth/refresh`, {
           refresh: refreshToken,
         });
 
