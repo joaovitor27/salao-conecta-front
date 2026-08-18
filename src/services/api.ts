@@ -12,6 +12,7 @@ api.interceptors.request.use((config) => {
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
+  
   if (tenantSlug) {
     config.headers['X-Tenant-Slug'] = tenantSlug;
   }

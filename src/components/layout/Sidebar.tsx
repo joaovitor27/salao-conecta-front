@@ -1,4 +1,4 @@
-import { Box, List, ListItem, ListItemButton, ListItemIcon, ListItemText, Typography, Divider, useTheme } from '@mui/material';
+import { Box, List, ListItem, ListItemButton, ListItemIcon, ListItemText, Typography, Divider, useTheme, Select, MenuItem, FormControl } from '@mui/material';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -15,7 +15,7 @@ export function Sidebar() {
   const theme = useTheme();
   const location = useLocation();
   const navigate = useNavigate();
-  const { signOut, user } = useAuth();
+  const { signOut, user, currentTenant, changeTenant } = useAuth();
 
   const menuItems = [
     { text: 'Dashboard', icon: <DashboardIcon />, path: '/app/dashboard' },
@@ -60,6 +60,28 @@ export function Sidebar() {
           Salão Conecta
         </Typography>
       </Box>
+
+      {user?.salons && user.salons.length > 1 && (
+        <Box sx={{ px: 2, pb: 2 }}>
+          <FormControl fullWidth size="small">
+            <Select
+              value={currentTenant || ''}
+              onChange={(e) => changeTenant(e.target.value as string)}
+              sx={{ 
+                borderRadius: 2, 
+                bgcolor: theme.palette.custom.gray[50],
+                '& .MuiOutlinedInput-notchedOutline': { borderColor: theme.palette.divider }
+              }}
+            >
+              {user.salons.map((salon) => (
+                <MenuItem key={salon.slug} value={salon.slug}>
+                  {salon.name}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+        </Box>
+      )}
 
       <Divider sx={{ mx: 2, mb: 2 }} />
 
