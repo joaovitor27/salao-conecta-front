@@ -237,10 +237,8 @@ export const NewAppointmentModal: React.FC<Props> = ({ open, appointmentId, onCl
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
-      <DialogTitle sx={{ fontWeight: 'bold', color: 'primary.main' }}>
-        {appointmentId ? 'Editar Agendamento' : 'Novo Agendamento'}
-      </DialogTitle>
-      
+      <DialogTitle sx={{ fontWeight: 'bold', color: 'primary.main' }}>{appointmentId ? 'Editar Agendamento' : 'Novo Agendamento'}</DialogTitle>
+
       {loadingData ? (
         <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
           <CircularProgress />
@@ -249,16 +247,17 @@ export const NewAppointmentModal: React.FC<Props> = ({ open, appointmentId, onCl
         <form onSubmit={handleSubmit}>
           <DialogContent dividers>
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-              
               {/* Seção Cliente */}
               <Box sx={{ bgcolor: 'custom.gray.50', p: 2, borderRadius: 2 }}>
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                  <Typography variant="subtitle2" fontWeight="bold">Cliente</Typography>
+                  <Typography variant="subtitle2" fontWeight="bold">
+                    Cliente
+                  </Typography>
                   <Button variant="link" size="sm" onClick={() => setIsNewClient(!isNewClient)}>
                     {isNewClient ? 'Selecionar Existente' : 'Cadastrar Novo Cliente'}
                   </Button>
                 </Box>
-                
+
                 {isNewClient ? (
                   <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                     <TextField
@@ -286,9 +285,9 @@ export const NewAppointmentModal: React.FC<Props> = ({ open, appointmentId, onCl
                   <Autocomplete
                     options={customers}
                     getOptionLabel={(option) => `${option.name} (${option.phone})`}
-                    value={customers.find(c => c.id === formData.client_id) || null}
-                    onInputChange={(e, newInputValue) => setClientSearch(newInputValue)}
-                    onChange={(e, newValue) => {
+                    value={customers.find((c) => c.id === formData.client_id) || null}
+                    onInputChange={(_e, newInputValue) => setClientSearch(newInputValue)}
+                    onChange={(_e, newValue) => {
                       setFormData({ ...formData, client_id: newValue ? newValue.id : '' });
                       if (errors.client_id) setErrors({ ...errors, client_id: [] });
                     }}
@@ -318,40 +317,34 @@ export const NewAppointmentModal: React.FC<Props> = ({ open, appointmentId, onCl
               </Box>
 
               <Divider />
-              
+
               {/* Seção Serviço e Profissional */}
               <Autocomplete
                 options={services}
                 getOptionLabel={(option) => `${option.service_name} - R$ ${option.price} (${option.duration_minutes} min)`}
-                value={services.find(s => s.id === Number(formData.service_id)) || null}
-                onChange={(e, newValue) => {
+                value={services.find((s) => s.id === Number(formData.service_id)) || null}
+                onChange={(_e, newValue) => {
                   setFormData({ ...formData, service_id: newValue ? String(newValue.id) : '' });
                   if (errors.service_id) setErrors({ ...errors, service_id: [] });
                 }}
                 renderInput={(params) => (
-                  <TextField 
-                    {...params} 
-                    label="Serviço *" 
-                    size="small" 
-                    error={!!errors.service_id}
-                    helperText={errors.service_id?.join(' ')}
-                  />
+                  <TextField {...params} label="Serviço *" size="small" error={!!errors.service_id} helperText={errors.service_id?.join(' ')} />
                 )}
               />
 
               <Autocomplete
                 options={employees}
                 getOptionLabel={(option) => option.full_name}
-                value={employees.find(e => e.id === formData.professional_id) || null}
-                onChange={(e, newValue) => {
+                value={employees.find((e) => e.id === formData.professional_id) || null}
+                onChange={(_e, newValue) => {
                   setFormData({ ...formData, professional_id: newValue ? newValue.id : '' });
                   if (errors.professional_id) setErrors({ ...errors, professional_id: [] });
                 }}
                 renderInput={(params) => (
-                  <TextField 
-                    {...params} 
-                    label="Profissional (Opcional)" 
-                    size="small" 
+                  <TextField
+                    {...params}
+                    label="Profissional (Opcional)"
+                    size="small"
                     error={!!errors.professional_id}
                     helperText={errors.professional_id?.join(' ')}
                   />
@@ -372,7 +365,7 @@ export const NewAppointmentModal: React.FC<Props> = ({ open, appointmentId, onCl
                   fullWidth
                   required
                 />
-                
+
                 <TextField
                   label="Desconto (R$)"
                   name="discount"
@@ -385,7 +378,7 @@ export const NewAppointmentModal: React.FC<Props> = ({ open, appointmentId, onCl
                   fullWidth
                 />
               </Box>
-              
+
               <TextField
                 label="Observações"
                 name="notes"

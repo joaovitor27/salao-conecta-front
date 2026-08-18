@@ -46,7 +46,7 @@ declare module '@mui/material/Accordion' {
   interface AccordionProps {
     value?: string;
     className?: string;
-    children?: ReactNode; // 'children' é opcional no tipo AccordionProps do MUI.
+    children: ReactNode;
     expanded?: boolean;
     onChange?: (event: SyntheticEvent, isExpanded: boolean) => void;
   }

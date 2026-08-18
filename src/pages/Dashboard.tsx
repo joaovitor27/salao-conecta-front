@@ -174,7 +174,7 @@ export default function Dashboard() {
               options={employees}
               getOptionLabel={(option) => option.full_name}
               value={employees.filter(e => filters.professional.includes(e.id))}
-              onChange={(e, newValue) => setFilters({ ...filters, professional: newValue.map(v => v.id) })}
+              onChange={(_e, newValue) => setFilters({ ...filters, professional: newValue.map(v => v.id) })}
               renderInput={(params) => <TextField {...params} label="Profissionais" />}
             />
           </Grid>
@@ -185,7 +185,7 @@ export default function Dashboard() {
               options={services}
               getOptionLabel={(option) => option.service_name}
               value={services.filter(s => filters.service.includes(String(s.id)))}
-              onChange={(e, newValue) => setFilters({ ...filters, service: newValue.map(v => String(v.id)) })}
+              onChange={(_e, newValue) => setFilters({ ...filters, service: newValue.map(v => String(v.id)) })}
               renderInput={(params) => <TextField {...params} label="Serviços" />}
             />
           </Grid>
@@ -206,7 +206,7 @@ export default function Dashboard() {
                 { id: 'completed', label: 'Concluído' },
                 { id: 'cancelled', label: 'Cancelado' },
               ].filter(s => filters.status.includes(s.id))}
-              onChange={(e, newValue) => setFilters({ ...filters, status: newValue.map(v => v.id) })}
+              onChange={(_e, newValue) => setFilters({ ...filters, status: newValue.map(v => v.id) })}
               renderInput={(params) => <TextField {...params} label="Status" />}
             />
           </Grid>
