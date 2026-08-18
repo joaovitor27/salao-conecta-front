@@ -13,7 +13,7 @@ import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
 
 import { dashboardService, type DashboardSummary } from '@/services/dashboard.service';
 import { appointmentService } from '@/services/appointment.service';
-import { businessService, Employee, ServiceSalon } from '@/services/business.service';
+import { businessService, type Employee, type ServiceSalon } from '@/services/business.service';
 import { NewAppointmentModal } from '@/components/NewAppointmentModal';
 import toast from 'react-hot-toast';
 

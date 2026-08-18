@@ -13,7 +13,7 @@ import {
 } from '@mui/material';
 import { Button } from '@/components/ui/Button';
 import { appointmentService } from '@/services/appointment.service';
-import { businessService, Customer, Employee, ServiceSalon } from '@/services/business.service';
+import { businessService, type Customer, type Employee, type ServiceSalon } from '@/services/business.service';
 import { useDebounce } from '@/hooks/useDebounce';
 import toast from 'react-hot-toast';
 
