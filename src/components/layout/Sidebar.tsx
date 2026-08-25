@@ -1,4 +1,4 @@
-import { Box, List, ListItem, ListItemButton, ListItemIcon, ListItemText, Typography, Divider, useTheme, Select, MenuItem, FormControl } from '@mui/material';
+import { Box, List, ListItem, ListItemButton, ListItemIcon, ListItemText, Typography, Divider, useTheme, Select, MenuItem, FormControl, Drawer, IconButton } from '@mui/material';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -10,8 +10,17 @@ import StorefrontIcon from '@mui/icons-material/Storefront';
 import SettingsIcon from '@mui/icons-material/Settings';
 import LogoutIcon from '@mui/icons-material/Logout';
 import ContentCutIcon from '@mui/icons-material/ContentCut';
+import CloseIcon from '@mui/icons-material/Close';
 
-export function Sidebar() {
+export const SIDEBAR_WIDTH = 280;
+
+interface SidebarProps {
+  mobileOpen?: boolean;
+  onClose?: () => void;
+  variant?: 'permanent' | 'temporary';
+}
+
+export function Sidebar({ mobileOpen = false, onClose, variant = 'permanent' }: SidebarProps) {
   const theme = useTheme();
   const location = useLocation();
   const navigate = useNavigate();
@@ -26,18 +35,21 @@ export function Sidebar() {
     { text: 'Configurações', icon: <SettingsIcon />, path: '/app/configuracoes' },
   ];
 
-  return (
+  const handleNavigate = (path: string) => {
+    navigate(path);
+    if (variant === 'temporary') onClose?.();
+  };
+
+  const content = (
     <Box
       sx={{
-        width: 280,
+        width: SIDEBAR_WIDTH,
         flexShrink: 0,
-        height: '100vh',
+        height: '100%',
         bgcolor: theme.palette.background.paper,
-        borderRight: `1px solid ${theme.palette.divider}`,
+        borderRight: { xs: 'none', md: `1px solid ${theme.palette.divider}` },
         display: 'flex',
         flexDirection: 'column',
-        position: 'sticky',
-        top: 0,
       }}
     >
       {/* Logo Area */}
@@ -56,9 +68,14 @@ export function Sidebar() {
         >
           <ContentCutIcon />
         </Box>
-        <Typography variant="h6" fontWeight="bold" color="primary.main">
+        <Typography variant="h6" fontWeight="bold" color="primary.main" sx={{ flexGrow: 1 }}>
           Salão Conecta
         </Typography>
+        {variant === 'temporary' && (
+          <IconButton onClick={onClose} size="small" aria-label="Fechar menu">
+            <CloseIcon />
+          </IconButton>
+        )}
       </Box>
 
       {user?.salons && user.salons.length > 1 && (
@@ -92,7 +109,7 @@ export function Sidebar() {
           return (
             <ListItem key={item.text} disablePadding sx={{ mb: 0.5 }}>
               <ListItemButton
-                onClick={() => navigate(item.path)}
+                onClick={() => handleNavigate(item.path)}
                 sx={{
                   borderRadius: 2,
                   bgcolor: isActive ? `${theme.palette.primary.main}15` : 'transparent',
@@ -154,6 +171,38 @@ export function Sidebar() {
           <ListItemText primary="Sair da Conta" slotProps={{ primary: { fontWeight: 500 } }} />
         </ListItemButton>
       </Box>
+    </Box>
+  );
+
+  if (variant === 'temporary') {
+    return (
+      <Drawer
+        variant="temporary"
+        open={mobileOpen}
+        onClose={onClose}
+        ModalProps={{ keepMounted: true }}
+        sx={{
+          display: { xs: 'block', md: 'none' },
+          '& .MuiDrawer-paper': { width: SIDEBAR_WIDTH, boxSizing: 'border-box' },
+        }}
+      >
+        {content}
+      </Drawer>
+    );
+  }
+
+  return (
+    <Box
+      sx={{
+        display: { xs: 'none', md: 'block' },
+        width: SIDEBAR_WIDTH,
+        flexShrink: 0,
+        height: '100vh',
+        position: 'sticky',
+        top: 0,
+      }}
+    >
+      {content}
     </Box>
   );
 }

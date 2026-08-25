@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   Dialog,
   DialogTitle,
@@ -10,10 +10,12 @@ import {
   CircularProgress,
   Divider,
   Autocomplete,
+  InputAdornment,
 } from '@mui/material';
 import { Button } from '@/components/ui/Button';
 import { appointmentService } from '@/services/appointment.service';
 import { businessService, type Customer, type Employee, type ServiceSalon } from '@/services/business.service';
+import { DaySchedulePreview } from '@/components/DaySchedulePreview';
 import { useDebounce } from '@/hooks/useDebounce';
 import toast from 'react-hot-toast';
 
@@ -24,64 +26,92 @@ interface Props {
   onSuccess: () => void;
 }
 
-export const NewAppointmentModal: React.FC<Props> = ({ open, appointmentId, onClose, onSuccess }) => {
-  const [formData, setFormData] = useState({
-    client_id: '',
-    professional_id: '',
-    service_id: '',
-    start_time: '',
-    discount: '0.00',
-    notes: '',
-  });
+const EMPTY_FORM = {
+  client_id: '',
+  professional_id: '',
+  service_id: '',
+  start_time: '',
+  discount: '0.00',
+  notes: '',
+};
 
+export function AppointmentFormModal({ open, appointmentId, onClose, onSuccess }: Props) {
+  const isEditing = !!appointmentId;
+
+  const [formData, setFormData] = useState({ ...EMPTY_FORM });
   const [isNewClient, setIsNewClient] = useState(false);
   const [newClientData, setNewClientData] = useState({ name: '', phone: '' });
 
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [services, setServices] = useState<ServiceSalon[]>([]);
-  
+
   const [loadingData, setLoadingData] = useState(false);
   const [errors, setErrors] = useState<Record<string, string[]>>({});
   const [loading, setLoading] = useState(false);
-  
-  // Para o Autocomplete de Cliente
+
   const [clientSearch, setClientSearch] = useState('');
-  const debouncedClientSearch = useDebounce(clientSearch, 500);
+  const debouncedClientSearch = useDebounce(clientSearch, 400);
   const [loadingClients, setLoadingClients] = useState(false);
 
+  const selectedDate = useMemo(() => {
+    if (!formData.start_time) return '';
+    return formData.start_time.split('T')[0];
+  }, [formData.start_time]);
+
   useEffect(() => {
-    if (open) {
-      loadStaticData();
-      if (appointmentId) {
-        loadAppointmentDetails(appointmentId);
-      } else {
-        setFormData({
-          client_id: '',
-          professional_id: '',
-          service_id: '',
-          start_time: '',
-          discount: '0.00',
-          notes: '',
-        });
-        setNewClientData({ name: '', phone: '' });
-        setIsNewClient(false);
-      }
-      setErrors({});
-      setClientSearch('');
+    if (!open) return;
+
+    void loadStaticData();
+
+    if (appointmentId) {
+      void loadAppointmentForEdit(appointmentId);
+    } else {
+      resetForm();
     }
   }, [open, appointmentId]);
 
-  const loadAppointmentDetails = async (id: number) => {
+  useEffect(() => {
+    if (open && !isNewClient) {
+      void searchCustomers(debouncedClientSearch);
+    }
+  }, [debouncedClientSearch, open, isNewClient]);
+
+  const loadStaticData = async () => {
+    try {
+      const [emp, serv] = await Promise.all([
+        businessService.getEmployees(),
+        businessService.getServices(),
+      ]);
+      setEmployees(emp);
+      setServices(serv);
+    } catch {
+      toast.error('Erro ao carregar dados do salão.');
+    }
+  };
+
+  const searchCustomers = async (search: string) => {
+    setLoadingClients(true);
+    try {
+      const data = await businessService.getCustomers(search);
+      setCustomers(data);
+    } catch {
+      // silent
+    } finally {
+      setLoadingClients(false);
+    }
+  };
+
+  const loadAppointmentForEdit = async (id: number) => {
     setLoadingData(true);
     try {
       const appt = await appointmentService.get(id);
-      
+
       const pad = (n: number) => String(n).padStart(2, '0');
       let localStart = '';
       if (appt.start_time) {
         const d = new Date(appt.start_time);
-        localStart = `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+        localStart = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
       }
 
       setFormData({
@@ -93,68 +123,45 @@ export const NewAppointmentModal: React.FC<Props> = ({ open, appointmentId, onCl
         notes: appt.notes || '',
       });
 
-      // Ensure the client is in the list
-      const clientExists = customers.find(c => c.id === appt.client.id);
-      if (!clientExists) {
-        setCustomers(prev => [...prev, appt.client]);
-      }
-    } catch (error) {
+      // Make sure the client appears in the autocomplete list
+      setCustomers((prev) => {
+        if (prev.some((c) => c.id === appt.client.id)) return prev;
+        return [...prev, appt.client];
+      });
+
+      setIsNewClient(false);
+      setErrors({});
+      setClientSearch('');
+    } catch {
       toast.error('Erro ao carregar dados do agendamento.');
     } finally {
       setLoadingData(false);
     }
   };
 
-  useEffect(() => {
-    if (open && !isNewClient) {
-      loadCustomers(debouncedClientSearch);
-    }
-  }, [debouncedClientSearch, open, isNewClient]);
-
-  const loadStaticData = async () => {
-    setLoadingData(true);
-    try {
-      const [emp, serv] = await Promise.all([
-        businessService.getEmployees(),
-        businessService.getServices(),
-      ]);
-      setEmployees(emp);
-      setServices(serv);
-    } catch (error) {
-      toast.error('Erro ao carregar dados do salão.');
-    } finally {
-      setLoadingData(false);
-    }
+  const resetForm = () => {
+    setFormData({ ...EMPTY_FORM });
+    setNewClientData({ name: '', phone: '' });
+    setIsNewClient(false);
+    setErrors({});
+    setClientSearch('');
+    setCustomers([]);
   };
 
-  const loadCustomers = async (search: string) => {
-    setLoadingClients(true);
-    try {
-      const data = await businessService.getCustomers(search);
-      setCustomers(data);
-    } catch (error) {
-      console.error(error);
-    } finally {
-      setLoadingClients(false);
-    }
-  };
-
+  // ── Handlers ──
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const name = e.target.name;
-    const value = e.target.value;
-    setFormData({ ...formData, [name]: value });
-    if (errors[name]) {
-      setErrors({ ...errors, [name]: [] });
-    }
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
+    if (errors[name]) setErrors((prev) => ({ ...prev, [name]: [] }));
   };
 
   const handleNewClientChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setNewClientData({ ...newClientData, [e.target.name]: e.target.value });
+    setNewClientData((prev) => ({ ...prev, [e.target.name]: e.target.value }));
   };
 
   const getIsoWithOffset = (localStr: string) => {
     if (!localStr) return '';
-    const offset = new Date().getTimezoneOffset(); // em minutos
+    const offset = new Date().getTimezoneOffset();
     const sign = offset > 0 ? '-' : '+';
     const absOffset = Math.abs(offset);
     const hours = String(Math.floor(absOffset / 60)).padStart(2, '0');
@@ -162,6 +169,34 @@ export const NewAppointmentModal: React.FC<Props> = ({ open, appointmentId, onCl
     return `${localStr}:00${sign}${hours}:${mins}`;
   };
 
+  // ── Error mapper ──
+  const handleApiError = (error: any) => {
+    if (error.response?.data) {
+      const data = error.response.data;
+      const mapped: Record<string, string[]> = {};
+      let hasField = false;
+
+      Object.entries(data).forEach(([key, val]) => {
+        if (Array.isArray(val)) {
+          mapped[key] = val;
+          hasField = true;
+        } else if (typeof val === 'string') {
+          mapped[key] = [val];
+          hasField = true;
+        }
+      });
+      setErrors(mapped);
+
+      if (data.detail) toast.error(data.detail);
+      else if (data.non_field_errors) toast.error(data.non_field_errors[0]);
+      else if (hasField) toast.error('Verifique os campos com erro.');
+      else toast.error('Erro ao salvar agendamento.');
+    } else {
+      toast.error('Ocorreu um erro inesperado.');
+    }
+  };
+
+  // ── Submit ──
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -171,9 +206,15 @@ export const NewAppointmentModal: React.FC<Props> = ({ open, appointmentId, onCl
       let finalClientId = formData.client_id;
 
       if (isNewClient) {
-        const createdCustomer = await businessService.createCustomer(newClientData);
-        finalClientId = createdCustomer.id;
-        setCustomers([...customers, createdCustomer]);
+        try {
+          const created = await businessService.createCustomer(newClientData);
+          finalClientId = created.id;
+          setCustomers((prev) => [...prev, created]);
+        } catch (err: any) {
+          handleApiError(err);
+          setLoading(false);
+          return;
+        }
       }
 
       if (!finalClientId) {
@@ -191,8 +232,8 @@ export const NewAppointmentModal: React.FC<Props> = ({ open, appointmentId, onCl
         notes: formData.notes,
       };
 
-      if (appointmentId) {
-        await appointmentService.updateAppointment(appointmentId, payload);
+      if (isEditing) {
+        await appointmentService.updateAppointment(appointmentId!, payload);
         toast.success('Agendamento atualizado com sucesso!');
       } else {
         await appointmentService.createAppointment(payload);
@@ -200,44 +241,32 @@ export const NewAppointmentModal: React.FC<Props> = ({ open, appointmentId, onCl
       }
       onSuccess();
       onClose();
-    } catch (error: any) {
-      if (error.response && error.response.data) {
-        const responseData = error.response.data;
-        const newErrors: Record<string, string[]> = {};
-        let hasFieldErrors = false;
-        
-        Object.keys(responseData).forEach(key => {
-          if (Array.isArray(responseData[key])) {
-            newErrors[key] = responseData[key];
-            hasFieldErrors = true;
-          } else if (typeof responseData[key] === 'string') {
-            newErrors[key] = [responseData[key]];
-            hasFieldErrors = true;
-          }
-        });
-        
-        setErrors(newErrors);
-        
-        if (responseData.detail) {
-          toast.error(responseData.detail);
-        } else if (responseData.non_field_errors) {
-          toast.error(responseData.non_field_errors[0]);
-        } else if (hasFieldErrors) {
-          toast.error('Verifique os campos com erro.');
-        } else {
-          toast.error('Erro ao salvar agendamento.');
-        }
-      } else {
-        toast.error('Ocorreu um erro inesperado.');
-      }
+    } catch (err: any) {
+      handleApiError(err);
     } finally {
       setLoading(false);
     }
   };
 
+  // ── Selected values for Autocomplete ──
+  const selectedClient = useMemo(
+    () => customers.find((c) => c.id === formData.client_id) ?? null,
+    [customers, formData.client_id],
+  );
+  const selectedService = useMemo(
+    () => services.find((s) => s.id === Number(formData.service_id)) ?? null,
+    [services, formData.service_id],
+  );
+  const selectedProfessional = useMemo(
+    () => employees.find((e) => e.id === formData.professional_id) ?? null,
+    [employees, formData.professional_id],
+  );
+
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
-      <DialogTitle sx={{ fontWeight: 'bold', color: 'primary.main' }}>{appointmentId ? 'Editar Agendamento' : 'Novo Agendamento'}</DialogTitle>
+      <DialogTitle sx={{ fontWeight: 'bold', color: 'primary.main' }}>
+        {isEditing ? 'Editar Agendamento' : 'Novo Agendamento'}
+      </DialogTitle>
 
       {loadingData ? (
         <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
@@ -247,15 +276,17 @@ export const NewAppointmentModal: React.FC<Props> = ({ open, appointmentId, onCl
         <form onSubmit={handleSubmit}>
           <DialogContent dividers>
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-              {/* Seção Cliente */}
+              {/* ── Seção Cliente ── */}
               <Box sx={{ bgcolor: 'custom.gray.50', p: 2, borderRadius: 2 }}>
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
                   <Typography variant="subtitle2" fontWeight="bold">
                     Cliente
                   </Typography>
-                  <Button variant="link" size="sm" onClick={() => setIsNewClient(!isNewClient)}>
-                    {isNewClient ? 'Selecionar Existente' : 'Cadastrar Novo Cliente'}
-                  </Button>
+                  {!isEditing && (
+                    <Button variant="link" size="sm" onClick={() => setIsNewClient(!isNewClient)}>
+                      {isNewClient ? 'Selecionar Existente' : 'Cadastrar Novo Cliente'}
+                    </Button>
+                  )}
                 </Box>
 
                 {isNewClient ? (
@@ -268,6 +299,8 @@ export const NewAppointmentModal: React.FC<Props> = ({ open, appointmentId, onCl
                       size="small"
                       required
                       fullWidth
+                      error={!!errors.name}
+                      helperText={errors.name?.join(' ')}
                     />
                     <TextField
                       label="Telefone ou CPF"
@@ -284,14 +317,19 @@ export const NewAppointmentModal: React.FC<Props> = ({ open, appointmentId, onCl
                 ) : (
                   <Autocomplete
                     options={customers}
-                    getOptionLabel={(option) => `${option.name} (${option.phone})`}
-                    value={customers.find((c) => c.id === formData.client_id) || null}
-                    onInputChange={(_e, newInputValue) => setClientSearch(newInputValue)}
-                    onChange={(_e, newValue) => {
-                      setFormData({ ...formData, client_id: newValue ? newValue.id : '' });
-                      if (errors.client_id) setErrors({ ...errors, client_id: [] });
+                    getOptionLabel={(opt) => `${opt.name} (${opt.phone})`}
+                    isOptionEqualToValue={(opt, val) => opt.id === val.id}
+                    value={selectedClient}
+                    inputValue={clientSearch}
+                    onInputChange={(_e, val, reason) => {
+                      if (reason !== 'reset') setClientSearch(val);
+                    }}
+                    onChange={(_e, val) => {
+                      setFormData((prev) => ({ ...prev, client_id: val?.id ?? '' }));
+                      if (errors.client_id) setErrors((prev) => ({ ...prev, client_id: [] }));
                     }}
                     loading={loadingClients}
+                    noOptionsText="Nenhum cliente encontrado"
                     renderInput={(params) => (
                       <TextField
                         {...params}
@@ -318,27 +356,36 @@ export const NewAppointmentModal: React.FC<Props> = ({ open, appointmentId, onCl
 
               <Divider />
 
-              {/* Seção Serviço e Profissional */}
+              {/* ── Serviço ── */}
               <Autocomplete
                 options={services}
-                getOptionLabel={(option) => `${option.service_name} - R$ ${option.price} (${option.duration_minutes} min)`}
-                value={services.find((s) => s.id === Number(formData.service_id)) || null}
-                onChange={(_e, newValue) => {
-                  setFormData({ ...formData, service_id: newValue ? String(newValue.id) : '' });
-                  if (errors.service_id) setErrors({ ...errors, service_id: [] });
+                getOptionLabel={(opt) => `${opt.service_name} — R$ ${opt.price} (${opt.duration_minutes} min)`}
+                isOptionEqualToValue={(opt, val) => opt.id === val.id}
+                value={selectedService}
+                onChange={(_e, val) => {
+                  setFormData((prev) => ({ ...prev, service_id: val ? String(val.id) : '' }));
+                  if (errors.service_id) setErrors((prev) => ({ ...prev, service_id: [] }));
                 }}
                 renderInput={(params) => (
-                  <TextField {...params} label="Serviço *" size="small" error={!!errors.service_id} helperText={errors.service_id?.join(' ')} />
+                  <TextField
+                    {...params}
+                    label="Serviço *"
+                    size="small"
+                    error={!!errors.service_id}
+                    helperText={errors.service_id?.join(' ')}
+                  />
                 )}
               />
 
+              {/* ── Profissional ── */}
               <Autocomplete
                 options={employees}
-                getOptionLabel={(option) => option.full_name}
-                value={employees.find((e) => e.id === formData.professional_id) || null}
-                onChange={(_e, newValue) => {
-                  setFormData({ ...formData, professional_id: newValue ? newValue.id : '' });
-                  if (errors.professional_id) setErrors({ ...errors, professional_id: [] });
+                getOptionLabel={(opt) => opt.full_name}
+                isOptionEqualToValue={(opt, val) => opt.id === val.id}
+                value={selectedProfessional}
+                onChange={(_e, val) => {
+                  setFormData((prev) => ({ ...prev, professional_id: val?.id ?? '' }));
+                  if (errors.professional_id) setErrors((prev) => ({ ...prev, professional_id: [] }));
                 }}
                 renderInput={(params) => (
                   <TextField
@@ -365,9 +412,8 @@ export const NewAppointmentModal: React.FC<Props> = ({ open, appointmentId, onCl
                   fullWidth
                   required
                 />
-
                 <TextField
-                  label="Desconto (R$)"
+                  label="Desconto"
                   name="discount"
                   type="number"
                   size="small"
@@ -375,10 +421,25 @@ export const NewAppointmentModal: React.FC<Props> = ({ open, appointmentId, onCl
                   onChange={handleChange}
                   error={!!errors.discount}
                   helperText={errors.discount?.join(' ')}
-                  fullWidth
+                  sx={{ maxWidth: 160 }}
+                  slotProps={{
+                    input: {
+                      startAdornment: <InputAdornment position="start">R$</InputAdornment>,
+                    },
+                  }}
                 />
               </Box>
 
+              {/* ── Agenda do Dia (calendar-like preview) ── */}
+              {selectedDate && (
+                <DaySchedulePreview
+                  date={selectedDate}
+                  professionalId={formData.professional_id || undefined}
+                  currentAppointmentId={appointmentId}
+                />
+              )}
+
+              {/* ── Observações ── */}
               <TextField
                 label="Observações"
                 name="notes"
@@ -393,16 +454,17 @@ export const NewAppointmentModal: React.FC<Props> = ({ open, appointmentId, onCl
               />
             </Box>
           </DialogContent>
+
           <DialogActions sx={{ p: 2, px: 3 }}>
             <Button variant="outline" onClick={onClose} disabled={loading}>
               Cancelar
             </Button>
             <Button type="submit" variant="hero" disabled={loading}>
-              {loading ? 'Salvando...' : 'Salvar Agendamento'}
+              {loading ? 'Salvando...' : isEditing ? 'Atualizar' : 'Salvar Agendamento'}
             </Button>
           </DialogActions>
         </form>
       )}
     </Dialog>
   );
-};
+}

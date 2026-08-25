@@ -7,6 +7,8 @@ import toast from 'react-hot-toast';
 interface SalonOption {
   slug: string;
   name: string;
+  role: 'owner' | 'manager' | 'receptionist' | 'professional' | 'support';
+  employee_id: string | null;
 }
 
 interface User {
@@ -25,6 +27,8 @@ interface AuthContextData {
   isLoading: boolean;
   currentTenant: string | null;
   changeTenant: (slug: string) => void;
+  currentRole: SalonOption['role'] | null;
+  currentEmployeeId: string | null;
 }
 
 const AuthContext = createContext<AuthContextData>({} as AuthContextData);
@@ -100,8 +104,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       window.location.href = '/login';
     });
   }
+  const currentSalonInfo = user?.salons?.find(s => s.slug === currentTenant);
+  const currentRole = currentSalonInfo?.role || null;
+  const currentEmployeeId = currentSalonInfo?.employee_id || null;
+
   return (
-    <AuthContext.Provider value={{ user, isAuthenticated: !!user, signIn, signOut, isLoading, currentTenant, changeTenant }}>
+    <AuthContext.Provider value={{ 
+      user, 
+      isAuthenticated: !!user, 
+      signIn, 
+      signOut, 
+      isLoading, 
+      currentTenant, 
+      changeTenant,
+      currentRole,
+      currentEmployeeId
+    }}>
       {children}
     </AuthContext.Provider>
   );
