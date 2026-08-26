@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Dialog,
   DialogTitle,
@@ -10,158 +10,195 @@ import {
   CircularProgress,
   Divider,
   Autocomplete,
-  InputAdornment,
+  IconButton,
 } from '@mui/material';
+import DeleteIcon from '@mui/icons-material/Delete';
 import { Button } from '@/components/ui/Button';
 import { appointmentService } from '@/services/appointment.service';
 import { businessService, type Customer, type Employee, type ServiceSalon } from '@/services/business.service';
-import { DaySchedulePreview } from '@/components/DaySchedulePreview';
 import { useDebounce } from '@/hooks/useDebounce';
 import toast from 'react-hot-toast';
 
 interface Props {
   open: boolean;
   appointmentId?: number | null;
+  /** Data/hora inicial pré-preenchida no formato datetime-local (ex: "2026-08-23T09:00") */
+  initialDate?: string;
   onClose: () => void;
   onSuccess: () => void;
 }
 
-const EMPTY_FORM = {
-  client_id: '',
-  professional_id: '',
-  service_id: '',
-  start_time: '',
-  discount: '0.00',
-  notes: '',
-};
+interface SelectedService {
+  service: ServiceSalon;
+  price: string;
+}
 
-export function AppointmentFormModal({ open, appointmentId, onClose, onSuccess }: Props) {
-  const isEditing = !!appointmentId;
+export const NewAppointmentModal: React.FC<Props> = ({ open, appointmentId, initialDate, onClose, onSuccess }) => {
+  const [formData, setFormData] = useState({
+    client_id: '',
+    professional_id: '',
+    start_time: '',
+    discount: '0.00',
+    notes: '',
+  });
 
-  const [formData, setFormData] = useState({ ...EMPTY_FORM });
+  const [selectedServices, setSelectedServices] = useState<SelectedService[]>([]);
+
   const [isNewClient, setIsNewClient] = useState(false);
   const [newClientData, setNewClientData] = useState({ name: '', phone: '' });
 
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [employees, setEmployees] = useState<Employee[]>([]);
-  const [services, setServices] = useState<ServiceSalon[]>([]);
-
+  const [availableServices, setAvailableServices] = useState<ServiceSalon[]>([]);
+  
   const [loadingData, setLoadingData] = useState(false);
   const [errors, setErrors] = useState<Record<string, string[]>>({});
   const [loading, setLoading] = useState(false);
-
+  
+  // Para o Autocomplete de Cliente
   const [clientSearch, setClientSearch] = useState('');
-  const debouncedClientSearch = useDebounce(clientSearch, 400);
+  const debouncedClientSearch = useDebounce(clientSearch, 500);
   const [loadingClients, setLoadingClients] = useState(false);
 
-  const selectedDate = useMemo(() => {
-    if (!formData.start_time) return '';
-    return formData.start_time.split('T')[0];
-  }, [formData.start_time]);
-
   useEffect(() => {
-    if (!open) return;
-
-    void loadStaticData();
-
-    if (appointmentId) {
-      void loadAppointmentForEdit(appointmentId);
-    } else {
-      resetForm();
+    if (open) {
+      loadStaticData();
+      if (appointmentId) {
+        loadAppointmentDetails(appointmentId);
+      } else {
+        setFormData({
+          client_id: '',
+          professional_id: '',
+          start_time: initialDate || '',
+          discount: '0.00',
+          notes: '',
+        });
+        setSelectedServices([]);
+        setNewClientData({ name: '', phone: '' });
+        setIsNewClient(false);
+      }
+      setErrors({});
+      setClientSearch('');
     }
   }, [open, appointmentId]);
 
-  useEffect(() => {
-    if (open && !isNewClient) {
-      void searchCustomers(debouncedClientSearch);
-    }
-  }, [debouncedClientSearch, open, isNewClient]);
-
-  const loadStaticData = async () => {
-    try {
-      const [emp, serv] = await Promise.all([
-        businessService.getEmployees(),
-        businessService.getServices(),
-      ]);
-      setEmployees(emp);
-      setServices(serv);
-    } catch {
-      toast.error('Erro ao carregar dados do salão.');
-    }
-  };
-
-  const searchCustomers = async (search: string) => {
-    setLoadingClients(true);
-    try {
-      const data = await businessService.getCustomers(search);
-      setCustomers(data);
-    } catch {
-      // silent
-    } finally {
-      setLoadingClients(false);
-    }
-  };
-
-  const loadAppointmentForEdit = async (id: number) => {
+  const loadAppointmentDetails = async (id: number) => {
     setLoadingData(true);
     try {
       const appt = await appointmentService.get(id);
-
+      
       const pad = (n: number) => String(n).padStart(2, '0');
       let localStart = '';
       if (appt.start_time) {
         const d = new Date(appt.start_time);
-        localStart = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+        localStart = `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
       }
 
       setFormData({
         client_id: appt.client.id,
         professional_id: appt.professional?.id || '',
-        service_id: String(appt.service.id),
         start_time: localStart,
         discount: appt.discount || '0.00',
         notes: appt.notes || '',
       });
 
-      // Make sure the client appears in the autocomplete list
-      setCustomers((prev) => {
-        if (prev.some((c) => c.id === appt.client.id)) return prev;
-        return [...prev, appt.client];
+      // Mapear itens (precisamos dos dados do serviço original ou usar um mock, mas a api retorna os items)
+      // Como a API Appt.items não retorna o objeto ServiceSalon completo, fazemos um find:
+      // Isso requer que getServices() já tenha retornado
+      const servs = await businessService.getServices();
+      setAvailableServices(servs);
+      
+      const selected = appt.items.map((item: any) => {
+        const s = servs.find(x => x.id === item.service);
+        return {
+          service: s || { id: item.service, service_name: item.service_name, price: item.price, duration_minutes: item.duration_minutes } as any,
+          price: item.price
+        };
       });
+      setSelectedServices(selected);
 
-      setIsNewClient(false);
-      setErrors({});
-      setClientSearch('');
-    } catch {
+      // Ensure the client is in the list
+      const clientExists = customers.find(c => c.id === appt.client.id);
+      if (!clientExists) {
+        setCustomers(prev => [...prev, appt.client]);
+      }
+    } catch (error) {
       toast.error('Erro ao carregar dados do agendamento.');
     } finally {
       setLoadingData(false);
     }
   };
 
-  const resetForm = () => {
-    setFormData({ ...EMPTY_FORM });
-    setNewClientData({ name: '', phone: '' });
-    setIsNewClient(false);
-    setErrors({});
-    setClientSearch('');
-    setCustomers([]);
+  useEffect(() => {
+    if (open && !isNewClient) {
+      loadCustomers(debouncedClientSearch);
+    }
+  }, [debouncedClientSearch, open, isNewClient]);
+
+  const loadStaticData = async () => {
+    if (loadingData || availableServices.length > 0) return;
+    setLoadingData(true);
+    try {
+      const [emp, serv] = await Promise.all([
+        businessService.getEmployees(),
+        businessService.getServices(),
+      ]);
+      setEmployees(emp);
+      setAvailableServices(serv);
+    } catch (error) {
+      toast.error('Erro ao carregar dados do salão.');
+    } finally {
+      setLoadingData(false);
+    }
   };
 
-  // ── Handlers ──
+  const loadCustomers = async (search: string) => {
+    setLoadingClients(true);
+    try {
+      const data = await businessService.getCustomers(search);
+      setCustomers(data);
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setLoadingClients(false);
+    }
+  };
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
-    if (errors[name]) setErrors((prev) => ({ ...prev, [name]: [] }));
+    const name = e.target.name;
+    const value = e.target.value;
+    setFormData({ ...formData, [name]: value });
+    if (errors[name]) {
+      setErrors({ ...errors, [name]: [] });
+    }
   };
 
   const handleNewClientChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setNewClientData((prev) => ({ ...prev, [e.target.name]: e.target.value }));
+    setNewClientData({ ...newClientData, [e.target.name]: e.target.value });
+  };
+
+  const handleServiceAdd = (service: ServiceSalon | null) => {
+    if (service) {
+      setSelectedServices([...selectedServices, { service, price: service.price }]);
+      if (errors.services) setErrors({ ...errors, services: [] });
+    }
+  };
+
+  const handleServiceRemove = (index: number) => {
+    const newServices = [...selectedServices];
+    newServices.splice(index, 1);
+    setSelectedServices(newServices);
+  };
+
+  const handleServicePriceChange = (index: number, newPrice: string) => {
+    const newServices = [...selectedServices];
+    newServices[index].price = newPrice;
+    setSelectedServices(newServices);
   };
 
   const getIsoWithOffset = (localStr: string) => {
     if (!localStr) return '';
-    const offset = new Date().getTimezoneOffset();
+    const offset = new Date().getTimezoneOffset(); // em minutos
     const sign = offset > 0 ? '-' : '+';
     const absOffset = Math.abs(offset);
     const hours = String(Math.floor(absOffset / 60)).padStart(2, '0');
@@ -169,34 +206,6 @@ export function AppointmentFormModal({ open, appointmentId, onClose, onSuccess }
     return `${localStr}:00${sign}${hours}:${mins}`;
   };
 
-  // ── Error mapper ──
-  const handleApiError = (error: any) => {
-    if (error.response?.data) {
-      const data = error.response.data;
-      const mapped: Record<string, string[]> = {};
-      let hasField = false;
-
-      Object.entries(data).forEach(([key, val]) => {
-        if (Array.isArray(val)) {
-          mapped[key] = val;
-          hasField = true;
-        } else if (typeof val === 'string') {
-          mapped[key] = [val];
-          hasField = true;
-        }
-      });
-      setErrors(mapped);
-
-      if (data.detail) toast.error(data.detail);
-      else if (data.non_field_errors) toast.error(data.non_field_errors[0]);
-      else if (hasField) toast.error('Verifique os campos com erro.');
-      else toast.error('Erro ao salvar agendamento.');
-    } else {
-      toast.error('Ocorreu um erro inesperado.');
-    }
-  };
-
-  // ── Submit ──
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -206,15 +215,9 @@ export function AppointmentFormModal({ open, appointmentId, onClose, onSuccess }
       let finalClientId = formData.client_id;
 
       if (isNewClient) {
-        try {
-          const created = await businessService.createCustomer(newClientData);
-          finalClientId = created.id;
-          setCustomers((prev) => [...prev, created]);
-        } catch (err: any) {
-          handleApiError(err);
-          setLoading(false);
-          return;
-        }
+        const createdCustomer = await businessService.createCustomer(newClientData);
+        finalClientId = createdCustomer.id;
+        setCustomers([...customers, createdCustomer]);
       }
 
       if (!finalClientId) {
@@ -223,17 +226,26 @@ export function AppointmentFormModal({ open, appointmentId, onClose, onSuccess }
         return;
       }
 
+      if (selectedServices.length === 0) {
+        setErrors({ services: ['Adicione pelo menos um serviço.'] });
+        setLoading(false);
+        return;
+      }
+
       const payload = {
         client_id: finalClientId,
-        service_id: Number(formData.service_id),
+        services: selectedServices.map(s => ({
+          service_id: s.service.id,
+          price: s.price,
+        })),
         start_time: getIsoWithOffset(formData.start_time),
         professional_id: formData.professional_id || null,
         discount: formData.discount,
         notes: formData.notes,
       };
 
-      if (isEditing) {
-        await appointmentService.updateAppointment(appointmentId!, payload);
+      if (appointmentId) {
+        await appointmentService.updateAppointment(appointmentId, payload);
         toast.success('Agendamento atualizado com sucesso!');
       } else {
         await appointmentService.createAppointment(payload);
@@ -241,32 +253,48 @@ export function AppointmentFormModal({ open, appointmentId, onClose, onSuccess }
       }
       onSuccess();
       onClose();
-    } catch (err: any) {
-      handleApiError(err);
+    } catch (error: any) {
+      if (error.response && error.response.data) {
+        const responseData = error.response.data;
+        const newErrors: Record<string, string[]> = {};
+        let hasFieldErrors = false;
+        
+        Object.keys(responseData).forEach(key => {
+          if (Array.isArray(responseData[key])) {
+            newErrors[key] = responseData[key];
+            hasFieldErrors = true;
+          } else if (typeof responseData[key] === 'string') {
+            newErrors[key] = [responseData[key]];
+            hasFieldErrors = true;
+          }
+        });
+        
+        setErrors(newErrors);
+        
+        if (responseData.detail) {
+          toast.error(responseData.detail);
+        } else if (responseData.non_field_errors) {
+          toast.error(responseData.non_field_errors[0]);
+        } else if (hasFieldErrors) {
+          toast.error('Verifique os campos com erro.');
+        } else {
+          toast.error('Erro ao salvar agendamento.');
+        }
+      } else {
+        toast.error('Ocorreu um erro inesperado.');
+      }
     } finally {
       setLoading(false);
     }
   };
 
-  // ── Selected values for Autocomplete ──
-  const selectedClient = useMemo(
-    () => customers.find((c) => c.id === formData.client_id) ?? null,
-    [customers, formData.client_id],
-  );
-  const selectedService = useMemo(
-    () => services.find((s) => s.id === Number(formData.service_id)) ?? null,
-    [services, formData.service_id],
-  );
-  const selectedProfessional = useMemo(
-    () => employees.find((e) => e.id === formData.professional_id) ?? null,
-    [employees, formData.professional_id],
-  );
+  const totalDuration = selectedServices.reduce((sum, item) => sum + (item.service.duration_minutes || 0), 0);
+  const totalPrice = selectedServices.reduce((sum, item) => sum + (parseFloat(item.price) || 0), 0);
+  const finalPrice = Math.max(0, totalPrice - (parseFloat(formData.discount) || 0));
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
-      <DialogTitle sx={{ fontWeight: 'bold', color: 'primary.main' }}>
-        {isEditing ? 'Editar Agendamento' : 'Novo Agendamento'}
-      </DialogTitle>
+      <DialogTitle sx={{ fontWeight: 'bold', color: 'primary.main' }}>{appointmentId ? 'Editar Agendamento' : 'Novo Agendamento'}</DialogTitle>
 
       {loadingData ? (
         <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
@@ -276,17 +304,15 @@ export function AppointmentFormModal({ open, appointmentId, onClose, onSuccess }
         <form onSubmit={handleSubmit}>
           <DialogContent dividers>
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-              {/* ── Seção Cliente ── */}
+              {/* Seção Cliente */}
               <Box sx={{ bgcolor: 'custom.gray.50', p: 2, borderRadius: 2 }}>
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
                   <Typography variant="subtitle2" fontWeight="bold">
                     Cliente
                   </Typography>
-                  {!isEditing && (
-                    <Button variant="link" size="sm" onClick={() => setIsNewClient(!isNewClient)}>
-                      {isNewClient ? 'Selecionar Existente' : 'Cadastrar Novo Cliente'}
-                    </Button>
-                  )}
+                  <Button variant="link" size="sm" onClick={() => setIsNewClient(!isNewClient)}>
+                    {isNewClient ? 'Selecionar Existente' : 'Cadastrar Novo Cliente'}
+                  </Button>
                 </Box>
 
                 {isNewClient ? (
@@ -299,8 +325,6 @@ export function AppointmentFormModal({ open, appointmentId, onClose, onSuccess }
                       size="small"
                       required
                       fullWidth
-                      error={!!errors.name}
-                      helperText={errors.name?.join(' ')}
                     />
                     <TextField
                       label="Telefone ou CPF"
@@ -317,19 +341,14 @@ export function AppointmentFormModal({ open, appointmentId, onClose, onSuccess }
                 ) : (
                   <Autocomplete
                     options={customers}
-                    getOptionLabel={(opt) => `${opt.name} (${opt.phone})`}
-                    isOptionEqualToValue={(opt, val) => opt.id === val.id}
-                    value={selectedClient}
-                    inputValue={clientSearch}
-                    onInputChange={(_e, val, reason) => {
-                      if (reason !== 'reset') setClientSearch(val);
-                    }}
-                    onChange={(_e, val) => {
-                      setFormData((prev) => ({ ...prev, client_id: val?.id ?? '' }));
-                      if (errors.client_id) setErrors((prev) => ({ ...prev, client_id: [] }));
+                    getOptionLabel={(option) => `${option.name} (${option.phone})`}
+                    value={customers.find((c) => c.id === formData.client_id) || null}
+                    onInputChange={(_e, newInputValue) => setClientSearch(newInputValue)}
+                    onChange={(_e, newValue) => {
+                      setFormData({ ...formData, client_id: newValue ? newValue.id : '' });
+                      if (errors.client_id) setErrors({ ...errors, client_id: [] });
                     }}
                     loading={loadingClients}
-                    noOptionsText="Nenhum cliente encontrado"
                     renderInput={(params) => (
                       <TextField
                         {...params}
@@ -356,36 +375,61 @@ export function AppointmentFormModal({ open, appointmentId, onClose, onSuccess }
 
               <Divider />
 
-              {/* ── Serviço ── */}
-              <Autocomplete
-                options={services}
-                getOptionLabel={(opt) => `${opt.service_name} — R$ ${opt.price} (${opt.duration_minutes} min)`}
-                isOptionEqualToValue={(opt, val) => opt.id === val.id}
-                value={selectedService}
-                onChange={(_e, val) => {
-                  setFormData((prev) => ({ ...prev, service_id: val ? String(val.id) : '' }));
-                  if (errors.service_id) setErrors((prev) => ({ ...prev, service_id: [] }));
-                }}
-                renderInput={(params) => (
-                  <TextField
-                    {...params}
-                    label="Serviço *"
-                    size="small"
-                    error={!!errors.service_id}
-                    helperText={errors.service_id?.join(' ')}
-                  />
-                )}
-              />
+              {/* Seção Serviços */}
+              <Box>
+                <Typography variant="subtitle2" fontWeight="bold" sx={{ mb: 1 }}>Serviços</Typography>
+                
+                <Autocomplete
+                  options={availableServices}
+                  getOptionLabel={(option) => `${option.service_name} - R$ ${option.price} (${option.duration_minutes} min)`}
+                  onChange={(_e, newValue) => handleServiceAdd(newValue)}
+                  value={null}
+                  renderInput={(params) => (
+                    <TextField {...params} label="Adicionar Serviço" size="small" error={!!errors.services} helperText={errors.services?.join(' ')} />
+                  )}
+                  sx={{ mb: 2 }}
+                />
 
-              {/* ── Profissional ── */}
+                {selectedServices.length > 0 && (
+                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                    {selectedServices.map((item, index) => (
+                      <Box key={index} sx={{ display: 'flex', alignItems: 'center', gap: 1, p: 1, bgcolor: 'background.default', border: '1px solid', borderColor: 'divider', borderRadius: 1 }}>
+                        <Box sx={{ flex: 1 }}>
+                          <Typography variant="body2" fontWeight="bold">{item.service.service_name}</Typography>
+                          <Typography variant="caption" color="text.secondary">{item.service.duration_minutes} min</Typography>
+                        </Box>
+                        <TextField
+                          size="small"
+                          label="Preço"
+                          type="number"
+                          value={item.price}
+                          onChange={(e) => handleServicePriceChange(index, e.target.value)}
+                          sx={{ width: 100 }}
+                          slotProps={{ htmlInput: { step: '0.01' } }}
+                        />
+                        <IconButton size="small" color="error" onClick={() => handleServiceRemove(index)}>
+                          <DeleteIcon fontSize="small" />
+                        </IconButton>
+                      </Box>
+                    ))}
+                    
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 1, p: 1, bgcolor: 'custom.gray.50', borderRadius: 1 }}>
+                      <Typography variant="body2" color="text.secondary">Duração total: {totalDuration} min</Typography>
+                      <Typography variant="body2" fontWeight="bold">Subtotal: R$ {totalPrice.toFixed(2)}</Typography>
+                    </Box>
+                  </Box>
+                )}
+              </Box>
+
+              <Divider />
+
               <Autocomplete
                 options={employees}
-                getOptionLabel={(opt) => opt.full_name}
-                isOptionEqualToValue={(opt, val) => opt.id === val.id}
-                value={selectedProfessional}
-                onChange={(_e, val) => {
-                  setFormData((prev) => ({ ...prev, professional_id: val?.id ?? '' }));
-                  if (errors.professional_id) setErrors((prev) => ({ ...prev, professional_id: [] }));
+                getOptionLabel={(option) => option.full_name}
+                value={employees.find((e) => e.id === formData.professional_id) || null}
+                onChange={(_e, newValue) => {
+                  setFormData({ ...formData, professional_id: newValue ? newValue.id : '' });
+                  if (errors.professional_id) setErrors({ ...errors, professional_id: [] });
                 }}
                 renderInput={(params) => (
                   <TextField
@@ -412,8 +456,9 @@ export function AppointmentFormModal({ open, appointmentId, onClose, onSuccess }
                   fullWidth
                   required
                 />
+
                 <TextField
-                  label="Desconto"
+                  label="Desconto (R$)"
                   name="discount"
                   type="number"
                   size="small"
@@ -421,25 +466,11 @@ export function AppointmentFormModal({ open, appointmentId, onClose, onSuccess }
                   onChange={handleChange}
                   error={!!errors.discount}
                   helperText={errors.discount?.join(' ')}
-                  sx={{ maxWidth: 160 }}
-                  slotProps={{
-                    input: {
-                      startAdornment: <InputAdornment position="start">R$</InputAdornment>,
-                    },
-                  }}
+                  fullWidth
+                  slotProps={{ htmlInput: { step: '0.01' } }}
                 />
               </Box>
 
-              {/* ── Agenda do Dia (calendar-like preview) ── */}
-              {selectedDate && (
-                <DaySchedulePreview
-                  date={selectedDate}
-                  professionalId={formData.professional_id || undefined}
-                  currentAppointmentId={appointmentId}
-                />
-              )}
-
-              {/* ── Observações ── */}
               <TextField
                 label="Observações"
                 name="notes"
@@ -454,17 +485,21 @@ export function AppointmentFormModal({ open, appointmentId, onClose, onSuccess }
               />
             </Box>
           </DialogContent>
-
-          <DialogActions sx={{ p: 2, px: 3 }}>
-            <Button variant="outline" onClick={onClose} disabled={loading}>
-              Cancelar
-            </Button>
-            <Button type="submit" variant="hero" disabled={loading}>
-              {loading ? 'Salvando...' : isEditing ? 'Atualizar' : 'Salvar Agendamento'}
-            </Button>
+          <DialogActions sx={{ p: 2, px: 3, display: 'flex', justifyContent: 'space-between' }}>
+            <Typography variant="subtitle1" fontWeight="bold">
+              Total: R$ {finalPrice.toFixed(2)}
+            </Typography>
+            <Box sx={{ display: 'flex', gap: 1 }}>
+              <Button variant="outline" onClick={onClose} disabled={loading}>
+                Cancelar
+              </Button>
+              <Button type="submit" variant="hero" disabled={loading}>
+                {loading ? 'Salvando...' : 'Salvar'}
+              </Button>
+            </Box>
           </DialogActions>
         </form>
       )}
     </Dialog>
   );
-}
+};

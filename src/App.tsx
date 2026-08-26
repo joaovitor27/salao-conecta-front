@@ -10,6 +10,7 @@ import { PrivateRoute } from './routes/PrivateRoute';
 import { Login } from './pages/Login';
 import Home from '@/pages/Home';
 import Dashboard from '@/pages/Dashboard.tsx';
+import Agenda from '@/pages/Agenda.tsx';
 import { PublicRoute } from '@/routes/PublicRoute.tsx';
 import { AppLayout } from '@/components/layout/AppLayout.tsx';
 
@@ -29,7 +30,7 @@ export default function App() {
             <Route element={<PrivateRoute />}>
               <Route element={<AppLayout />}>
                 <Route path="/app/dashboard" element={<Dashboard />} />
-                <Route path="/app/agenda" element={<div>Agenda do Cliente/Profissional</div>} />
+                <Route path="/app/agenda" element={<Agenda />} />
               </Route>
             </Route>
           </Routes>
