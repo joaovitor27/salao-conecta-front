@@ -1,8 +1,7 @@
 // src/components/MuiButton.tsx
 import * as React from 'react';
 import MuiButton, { type ButtonProps as MuiButtonProps } from '@mui/material/Button';
-import { type Theme, useTheme } from '@mui/material/styles';
-import { rawColors } from '@/theme.tsx';
+import { alpha, type Theme, useTheme } from '@mui/material/styles';
 
 interface CustomButtonProps extends MuiButtonProps {
   variant?: 'default' | 'hero' | 'accent' | 'secondary' | 'beauty' | 'outline' | 'outline-beauty' | 'destructive' | 'ghost' | 'link';
@@ -119,7 +118,7 @@ const variantStyles = (theme: Theme) => ({
     textUnderlineOffset: 4,
     '&:hover': {
       color: theme.palette.primary.dark,
-      backgroundColor: rawColors.primary['50'],
+      backgroundColor: alpha(theme.palette.primary.main, 0.08),
     },
   },
 });

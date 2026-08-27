@@ -15,6 +15,7 @@ export interface Appointment {
     id: string;
     name: string;
     phone: string;
+    cpf?: string;
   };
   professional: {
     id: string;

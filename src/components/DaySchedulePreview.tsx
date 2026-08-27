@@ -122,7 +122,7 @@ export function DaySchedulePreview({ date, professionalId, currentAppointmentId 
                   {appt.client.name}
                 </Typography>
                 <Typography variant="caption" color="text.secondary">
-                  {appt.service.service_name}
+                  {appt.items?.map(i => i.service_name).join(', ') || 'Serviços'}
                 </Typography>
               </Box>
             );

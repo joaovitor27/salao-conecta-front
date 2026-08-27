@@ -21,13 +21,13 @@ interface AppointmentCardProps {
 
 export function AppointmentCard({ appointment, onEdit, onStatusChange }: AppointmentCardProps) {
   const theme = useTheme();
-  const { isProfessionalOnly } = usePermissions();
+  const { canManageSchedules } = usePermissions();
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
 
   const status = appointment.status as AppointmentStatus;
   const transitions = getAllowedTransitions(status);
   const statusEditable = canEdit(status);
-  const editable = statusEditable && !isProfessionalOnly;
+  const editable = statusEditable && canManageSchedules;
   const isTerminal = !statusEditable;
 
   const formatTime = (timeString: string | null) => {

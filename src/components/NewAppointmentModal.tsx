@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
+  Alert,
   Dialog,
   DialogTitle,
   DialogContent,
@@ -17,6 +18,7 @@ import { Button } from '@/components/ui/Button';
 import { appointmentService } from '@/services/appointment.service';
 import { businessService, type Customer, type Employee, type ServiceSalon } from '@/services/business.service';
 import { useDebounce } from '@/hooks/useDebounce';
+import { TimeSlotPicker } from '@/components/appointment/TimeSlotPicker';
 import toast from 'react-hot-toast';
 
 interface Props {
@@ -31,6 +33,7 @@ interface Props {
 interface SelectedService {
   service: ServiceSalon;
   price: string;
+  duration_minutes: number;
 }
 
 export const NewAppointmentModal: React.FC<Props> = ({ open, appointmentId, initialDate, onClose, onSuccess }) => {
@@ -45,7 +48,7 @@ export const NewAppointmentModal: React.FC<Props> = ({ open, appointmentId, init
   const [selectedServices, setSelectedServices] = useState<SelectedService[]>([]);
 
   const [isNewClient, setIsNewClient] = useState(false);
-  const [newClientData, setNewClientData] = useState({ name: '', phone: '' });
+  const [newClientData, setNewClientData] = useState({ name: '', phone: '', cpf: '' });
 
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [employees, setEmployees] = useState<Employee[]>([]);
@@ -74,7 +77,7 @@ export const NewAppointmentModal: React.FC<Props> = ({ open, appointmentId, init
           notes: '',
         });
         setSelectedServices([]);
-        setNewClientData({ name: '', phone: '' });
+        setNewClientData({ name: '', phone: '', cpf: '' });
         setIsNewClient(false);
       }
       setErrors({});
@@ -102,9 +105,6 @@ export const NewAppointmentModal: React.FC<Props> = ({ open, appointmentId, init
         notes: appt.notes || '',
       });
 
-      // Mapear itens (precisamos dos dados do serviço original ou usar um mock, mas a api retorna os items)
-      // Como a API Appt.items não retorna o objeto ServiceSalon completo, fazemos um find:
-      // Isso requer que getServices() já tenha retornado
       const servs = await businessService.getServices();
       setAvailableServices(servs);
       
@@ -112,12 +112,12 @@ export const NewAppointmentModal: React.FC<Props> = ({ open, appointmentId, init
         const s = servs.find(x => x.id === item.service);
         return {
           service: s || { id: item.service, service_name: item.service_name, price: item.price, duration_minutes: item.duration_minutes } as any,
-          price: item.price
+          price: item.price,
+          duration_minutes: item.duration_minutes
         };
       });
       setSelectedServices(selected);
 
-      // Ensure the client is in the list
       const clientExists = customers.find(c => c.id === appt.client.id);
       if (!clientExists) {
         setCustomers(prev => [...prev, appt.client]);
@@ -179,7 +179,7 @@ export const NewAppointmentModal: React.FC<Props> = ({ open, appointmentId, init
 
   const handleServiceAdd = (service: ServiceSalon | null) => {
     if (service) {
-      setSelectedServices([...selectedServices, { service, price: service.price }]);
+      setSelectedServices([...selectedServices, { service, price: service.price, duration_minutes: service.duration_minutes }]);
       if (errors.services) setErrors({ ...errors, services: [] });
     }
   };
@@ -190,9 +190,9 @@ export const NewAppointmentModal: React.FC<Props> = ({ open, appointmentId, init
     setSelectedServices(newServices);
   };
 
-  const handleServicePriceChange = (index: number, newPrice: string) => {
+  const handleServiceFieldChange = (index: number, field: 'price' | 'duration_minutes', value: string | number) => {
     const newServices = [...selectedServices];
-    newServices[index].price = newPrice;
+    newServices[index] = { ...newServices[index], [field]: value };
     setSelectedServices(newServices);
   };
 
@@ -237,6 +237,7 @@ export const NewAppointmentModal: React.FC<Props> = ({ open, appointmentId, init
         services: selectedServices.map(s => ({
           service_id: s.service.id,
           price: s.price,
+          duration_minutes: s.duration_minutes
         })),
         start_time: getIsoWithOffset(formData.start_time),
         professional_id: formData.professional_id || null,
@@ -288,7 +289,27 @@ export const NewAppointmentModal: React.FC<Props> = ({ open, appointmentId, init
     }
   };
 
-  const totalDuration = selectedServices.reduce((sum, item) => sum + (item.service.duration_minutes || 0), 0);
+  // Profissionais que realizam TODOS os serviços escolhidos.
+  // Quem ainda não tem serviços vinculados continua disponível (sem restrição cadastrada).
+  const filteredEmployees = useMemo(() => {
+    const ids = selectedServices.map((item) => item.service.id);
+    if (ids.length === 0) return employees;
+    return employees.filter((employee) => {
+      const links = employee.services ?? [];
+      if (links.length === 0) return true;
+      return ids.every((id) => links.some((link) => link.service_id === id));
+    });
+  }, [employees, selectedServices]);
+
+  // Limpa o profissional que não atende mais a combinação de serviços
+  useEffect(() => {
+    if (formData.professional_id && !filteredEmployees.some((e) => e.id === formData.professional_id)) {
+      setFormData((current) => ({ ...current, professional_id: '' }));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filteredEmployees]);
+
+  const totalDuration = selectedServices.reduce((sum, item) => sum + (item.duration_minutes || 0), 0);
   const totalPrice = selectedServices.reduce((sum, item) => sum + (parseFloat(item.price) || 0), 0);
   const finalPrice = Math.max(0, totalPrice - (parseFloat(formData.discount) || 0));
 
@@ -327,7 +348,7 @@ export const NewAppointmentModal: React.FC<Props> = ({ open, appointmentId, init
                       fullWidth
                     />
                     <TextField
-                      label="Telefone ou CPF"
+                      label="Telefone"
                       name="phone"
                       value={newClientData.phone}
                       onChange={handleNewClientChange}
@@ -336,6 +357,17 @@ export const NewAppointmentModal: React.FC<Props> = ({ open, appointmentId, init
                       fullWidth
                       error={!!errors.phone}
                       helperText={errors.phone?.join(' ')}
+                    />
+                    <TextField
+                      label="CPF"
+                      name="cpf"
+                      value={newClientData.cpf}
+                      onChange={handleNewClientChange}
+                      size="small"
+                      required
+                      fullWidth
+                      error={!!errors.cpf}
+                      helperText={errors.cpf?.join(' ')}
                     />
                   </Box>
                 ) : (
@@ -396,14 +428,21 @@ export const NewAppointmentModal: React.FC<Props> = ({ open, appointmentId, init
                       <Box key={index} sx={{ display: 'flex', alignItems: 'center', gap: 1, p: 1, bgcolor: 'background.default', border: '1px solid', borderColor: 'divider', borderRadius: 1 }}>
                         <Box sx={{ flex: 1 }}>
                           <Typography variant="body2" fontWeight="bold">{item.service.service_name}</Typography>
-                          <Typography variant="caption" color="text.secondary">{item.service.duration_minutes} min</Typography>
                         </Box>
+                        <TextField
+                          size="small"
+                          label="Minutos"
+                          type="number"
+                          value={item.duration_minutes}
+                          onChange={(e) => handleServiceFieldChange(index, 'duration_minutes', parseInt(e.target.value) || 0)}
+                          sx={{ width: 80 }}
+                        />
                         <TextField
                           size="small"
                           label="Preço"
                           type="number"
                           value={item.price}
-                          onChange={(e) => handleServicePriceChange(index, e.target.value)}
+                          onChange={(e) => handleServiceFieldChange(index, 'price', e.target.value)}
                           sx={{ width: 100 }}
                           slotProps={{ htmlInput: { step: '0.01' } }}
                         />
@@ -424,39 +463,65 @@ export const NewAppointmentModal: React.FC<Props> = ({ open, appointmentId, init
               <Divider />
 
               <Autocomplete
-                options={employees}
+                options={filteredEmployees}
                 getOptionLabel={(option) => option.full_name}
-                value={employees.find((e) => e.id === formData.professional_id) || null}
+                value={filteredEmployees.find((e) => e.id === formData.professional_id) || null}
                 onChange={(_e, newValue) => {
                   setFormData({ ...formData, professional_id: newValue ? newValue.id : '' });
                   if (errors.professional_id) setErrors({ ...errors, professional_id: [] });
                 }}
+                noOptionsText="Nenhum profissional realiza os serviços escolhidos"
+                renderOption={(props, option) => (
+                  <li {...props} key={option.id}>
+                    <Box>
+                      <Typography variant="body2">{option.full_name}</Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        {option.services?.length
+                          ? option.services.map((s) => s.service_name).join(', ')
+                          : 'Sem serviços vinculados'}
+                      </Typography>
+                    </Box>
+                  </li>
+                )}
                 renderInput={(params) => (
                   <TextField
                     {...params}
                     label="Profissional (Opcional)"
                     size="small"
                     error={!!errors.professional_id}
-                    helperText={errors.professional_id?.join(' ')}
+                    helperText={
+                      errors.professional_id?.join(' ') ||
+                      (selectedServices.length > 0
+                        ? `${filteredEmployees.length} profissional(is) realiza(m) os serviços escolhidos`
+                        : 'Escolha os serviços para filtrar quem os realiza')
+                    }
                   />
                 )}
               />
 
-              <Box sx={{ display: 'flex', gap: 2 }}>
-                <TextField
-                  label="Data e Hora de Início *"
-                  name="start_time"
-                  type="datetime-local"
-                  size="small"
-                  slotProps={{ inputLabel: { shrink: true } }}
-                  value={formData.start_time}
-                  onChange={handleChange}
-                  error={!!errors.start_time}
-                  helperText={errors.start_time?.join(' ')}
-                  fullWidth
-                  required
-                />
+              {selectedServices.length > 0 && filteredEmployees.length === 0 && (
+                <Alert severity="warning">
+                  Nenhum profissional cadastrado realiza todos os serviços escolhidos. Vincule os serviços em
+                  Funcionários ou agende sem profissional definido.
+                </Alert>
+              )}
 
+              <Divider />
+
+              <TimeSlotPicker
+                value={formData.start_time}
+                onChange={(next) => {
+                  setFormData((current) => ({ ...current, start_time: next }));
+                  if (errors.start_time) setErrors({ ...errors, start_time: [] });
+                }}
+                professionalId={formData.professional_id || null}
+                serviceIds={selectedServices.map((item) => item.service.id)}
+                duration={totalDuration}
+                appointmentId={appointmentId}
+                error={errors.start_time?.join(' ')}
+              />
+
+              <Box sx={{ display: 'flex', gap: 2 }}>
                 <TextField
                   label="Desconto (R$)"
                   name="discount"

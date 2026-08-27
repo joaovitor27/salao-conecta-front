@@ -3,17 +3,15 @@ import { useAuth } from '@/contexts/AuthContext';
 export function usePermissions() {
   const { currentRole, currentEmployeeId } = useAuth();
 
-  // "owner", "manager", "receptionist" têm acesso total à agenda
   const isManagerOrOwner = currentRole === 'owner' || currentRole === 'manager';
   
-  // "receptionist" pode ver tudo na agenda mas não pode ver finanças profundas, por exemplo.
-  const canSeeAllSchedules = isManagerOrOwner || currentRole === 'receptionist';
+  const canSeeAllSchedules = true; // Everyone who can login can see all schedules
   
-  // Apenas donos e gerentes veem o faturamento financeiro completo
-  const canSeeFinancials = isManagerOrOwner;
-
-  // Um profissional ("professional") vê apenas os próprios agendamentos e seu próprio faturamento
-  const isProfessionalOnly = currentRole === 'professional';
+  const canSeeFinancials = isManagerOrOwner || currentRole === 'financial';
+  
+  const canManageSchedules = isManagerOrOwner || currentRole === 'receptionist';
+  
+  const canManageCustomers = isManagerOrOwner || currentRole === 'receptionist';
 
   return {
     currentRole,
@@ -21,6 +19,7 @@ export function usePermissions() {
     isManagerOrOwner,
     canSeeAllSchedules,
     canSeeFinancials,
-    isProfessionalOnly
+    canManageSchedules,
+    canManageCustomers
   };
 }

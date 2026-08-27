@@ -1,9 +1,9 @@
 import { useState } from 'react';
-import { AppBar, Box, IconButton, Toolbar, Typography, useTheme } from '@mui/material';
+import { AppBar, Box, IconButton, Toolbar, useTheme } from '@mui/material';
 import MenuIcon from '@mui/icons-material/Menu';
-import ContentCutIcon from '@mui/icons-material/ContentCut';
 import { Outlet } from 'react-router-dom';
 import { Sidebar } from './Sidebar';
+import { SalonLogo } from '@/components/branding/SalonLogo';
 
 export function AppLayout() {
   const theme = useTheme();
@@ -29,10 +29,7 @@ export function AppLayout() {
             <IconButton edge="start" onClick={() => setMobileOpen(true)} aria-label="Abrir menu">
               <MenuIcon />
             </IconButton>
-            <ContentCutIcon color="primary" />
-            <Typography variant="h6" fontWeight="bold" color="primary.main">
-              Salão Conecta
-            </Typography>
+            <SalonLogo size={32} showName />
           </Toolbar>
         </AppBar>
 

@@ -69,7 +69,7 @@ const AccordionItem = React.forwardRef<React.ComponentRef<typeof MuiAccordion>, 
       }}
       {...props}
     >
-      {children}
+      {children as React.ReactElement}
     </Accordion>
   );
 });

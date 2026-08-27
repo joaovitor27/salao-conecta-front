@@ -7,7 +7,7 @@ import toast from 'react-hot-toast';
 interface SalonOption {
   slug: string;
   name: string;
-  role: 'owner' | 'manager' | 'receptionist' | 'professional' | 'support';
+  role: 'owner' | 'manager' | 'financial' | 'receptionist';
   employee_id: string | null;
 }
 

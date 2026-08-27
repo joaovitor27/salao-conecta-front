@@ -27,6 +27,8 @@ interface CalendarEventPopoverProps {
   onStatusChange: (id: number | string, status: string) => void;
 }
 
+import { usePermissions } from '@/hooks/usePermissions';
+
 export default function CalendarEventPopover({
   anchorEl,
   appointment,
@@ -35,6 +37,7 @@ export default function CalendarEventPopover({
   onStatusChange,
 }: CalendarEventPopoverProps) {
   const theme = useTheme();
+  const { canManageSchedules } = usePermissions();
   const open = Boolean(anchorEl) && Boolean(appointment);
 
   if (!appointment) return null;
@@ -150,53 +153,57 @@ export default function CalendarEventPopover({
       </Box>
 
       {/* Ações */}
-      <Divider />
-      <Box sx={{ p: 1.5, display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-        {!isTerminal && (
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => { onEdit(appointment.id); onClose(); }}
-            sx={{ flex: 1 }}
-          >
-            <EditIcon sx={{ mr: 0.5 }} />
-            Editar
-          </Button>
-        )}
+      {canManageSchedules && (
+        <>
+          <Divider />
+          <Box sx={{ p: 1.5, display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+            {!isTerminal && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => { onEdit(appointment.id); onClose(); }}
+                sx={{ flex: 1 }}
+              >
+                <EditIcon sx={{ mr: 0.5 }} />
+                Editar
+              </Button>
+            )}
 
-        {appointment.status === 'pending' && (
-          <Button
-            variant="default"
-            size="sm"
-            onClick={() => { onStatusChange(appointment.id, 'confirmed'); onClose(); }}
-            sx={{ flex: 1 }}
-          >
-            Confirmar
-          </Button>
-        )}
+            {appointment.status === 'pending' && (
+              <Button
+                variant="default"
+                size="sm"
+                onClick={() => { onStatusChange(appointment.id, 'confirmed'); onClose(); }}
+                sx={{ flex: 1 }}
+              >
+                Confirmar
+              </Button>
+            )}
 
-        {appointment.status === 'confirmed' && (
-          <Button
-            variant="hero"
-            size="sm"
-            onClick={() => { onStatusChange(appointment.id, 'completed'); onClose(); }}
-            sx={{ flex: 1 }}
-          >
-            Concluir
-          </Button>
-        )}
+            {appointment.status === 'confirmed' && (
+              <Button
+                variant="hero"
+                size="sm"
+                onClick={() => { onStatusChange(appointment.id, 'completed'); onClose(); }}
+                sx={{ flex: 1 }}
+              >
+                Concluir
+              </Button>
+            )}
 
-        {!isTerminal && (
-          <Button
-            variant="destructive"
-            size="sm"
-            onClick={() => { onStatusChange(appointment.id, 'cancelled'); onClose(); }}
-            sx={{ flex: 1 }}
-          >
-            Cancelar
-          </Button>
-        )}
-      </Box>
+            {!isTerminal && (
+              <Button
+                variant="destructive"
+                size="sm"
+                onClick={() => { onStatusChange(appointment.id, 'cancelled'); onClose(); }}
+                sx={{ flex: 1 }}
+              >
+                Cancelar
+              </Button>
+            )}
+          </Box>
+        </>
+      )}
     </Popover>
   );
 }

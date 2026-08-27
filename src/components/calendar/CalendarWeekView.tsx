@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Box, Paper, Typography, useTheme } from '@mui/material';
 import {
-  CalendarAppointment,
   getWeekDays,
   getHourSlots,
   getAppointmentsForDay,
@@ -13,6 +12,7 @@ import {
   WEEK_DAYS_SHORT,
   calculateOverlaps
 } from '@/utils/calendar.utils';
+import type { CalendarAppointment } from '@/utils/calendar.utils';
 
 interface CalendarWeekViewProps {
   currentDate: Date;

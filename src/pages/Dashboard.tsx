@@ -13,7 +13,7 @@ import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
 import { dashboardService, type DashboardSummary } from '@/services/dashboard.service';
 import { appointmentService } from '@/services/appointment.service';
 import { businessService, type Employee, type ServiceSalon } from '@/services/business.service';
-import { AppointmentFormModal } from '@/components/NewAppointmentModal';
+import { NewAppointmentModal } from '@/components/NewAppointmentModal';
 import { AppointmentCard } from '@/components/AppointmentCard';
 import { usePermissions } from '@/hooks/usePermissions';
 import toast from 'react-hot-toast';
@@ -49,14 +49,14 @@ export default function Dashboard() {
     status: [] as string[],
   });
 
-  const { canSeeFinancials, isProfessionalOnly, isManagerOrOwner, currentRole } = usePermissions();
+  const { canSeeFinancials, canManageSchedules } = usePermissions();
 
   // ── Load auxiliar data once ──
   useEffect(() => {
     const fetchAux = async () => {
       try {
         const [emp, serv] = await Promise.all([
-          !isProfessionalOnly ? businessService.getEmployees() : Promise.resolve([]),
+          businessService.getEmployees(),
           businessService.getServices(),
         ]);
         if (emp.length) setEmployees(emp);
@@ -66,7 +66,7 @@ export default function Dashboard() {
       }
     };
     void fetchAux();
-  }, [isProfessionalOnly]);
+  }, []);
 
   // ── Dashboard data (reloads on filter or refresh change) ──
   useEffect(() => {
@@ -128,13 +128,13 @@ export default function Dashboard() {
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 6 }}>
         <Box>
           <Typography variant="h4" fontWeight="bold" color="primary.main" gutterBottom>
-            Olá, {user?.first_name || 'Profissional'} 👋
+            Olá, {user?.first_name || 'Usuário'} 👋
           </Typography>
           <Typography variant="body1" color="text.secondary">
             Aqui está o resumo da sua agenda para hoje, {new Date().toLocaleDateString('pt-BR', { day: 'numeric', month: 'long' })}.
           </Typography>
         </Box>
-        {!isProfessionalOnly && (
+        {canManageSchedules && (
           <Button variant="hero" size="lg" onClick={handleNewAppointment}>
             <AddIcon sx={{ mr: 1 }} />
             Novo Agendamento
@@ -145,7 +145,7 @@ export default function Dashboard() {
       {/* ── Filtros ── */}
       <Paper sx={{ p: 2, mb: 4, borderRadius: 3, boxShadow: theme.palette.custom.shadows.card, border: `1px solid ${theme.palette.divider}` }}>
         <Grid container spacing={2} alignItems="center">
-          <Grid size={{ xs: 12, md: isProfessionalOnly ? 4 : 3 }}>
+          <Grid size={{ xs: 12, md: 3 }}>
             <TextField
               label="Data"
               type="date"
@@ -156,21 +156,19 @@ export default function Dashboard() {
               onChange={(e) => setFilters({ ...filters, date: e.target.value })}
             />
           </Grid>
-          {!isProfessionalOnly && (
-            <Grid size={{ xs: 12, md: 3 }}>
-              <Autocomplete
-                multiple
-                size="small"
-                options={employees}
-                getOptionLabel={(opt) => opt.full_name}
-                isOptionEqualToValue={(opt, val) => opt.id === val.id}
-                value={employees.filter((e) => filters.professional.includes(e.id))}
-                onChange={(_e, val) => setFilters({ ...filters, professional: val.map((v) => v.id) })}
-                renderInput={(params) => <TextField {...params} label="Profissionais" />}
-              />
-            </Grid>
-          )}
-          <Grid size={{ xs: 12, md: isProfessionalOnly ? 4 : 3 }}>
+          <Grid size={{ xs: 12, md: 3 }}>
+            <Autocomplete
+              multiple
+              size="small"
+              options={employees}
+              getOptionLabel={(opt) => opt.full_name}
+              isOptionEqualToValue={(opt, val) => opt.id === val.id}
+              value={employees.filter((e) => filters.professional.includes(e.id))}
+              onChange={(_e, val) => setFilters({ ...filters, professional: val.map((v) => v.id) })}
+              renderInput={(params) => <TextField {...params} label="Profissionais" />}
+            />
+          </Grid>
+          <Grid size={{ xs: 12, md: 3 }}>
             <Autocomplete
               multiple
               size="small"
@@ -284,7 +282,7 @@ export default function Dashboard() {
       </Box>
 
       {/* ── Modal ── */}
-      <AppointmentFormModal
+      <NewAppointmentModal
         open={isModalOpen}
         appointmentId={editingApptId}
         onClose={handleModalClose}

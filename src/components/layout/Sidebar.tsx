@@ -1,11 +1,13 @@
 import { Box, List, ListItem, ListItemButton, ListItemIcon, ListItemText, Typography, Divider, useTheme, Select, MenuItem, FormControl, Drawer, IconButton } from '@mui/material';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import { SalonLogo } from '@/components/branding/SalonLogo';
 
 // Ícones
 import DashboardIcon from '@mui/icons-material/Dashboard';
 import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
 import PeopleIcon from '@mui/icons-material/People';
+import BadgeIcon from '@mui/icons-material/Badge';
 import StorefrontIcon from '@mui/icons-material/Storefront';
 import SettingsIcon from '@mui/icons-material/Settings';
 import LogoutIcon from '@mui/icons-material/Logout';
@@ -30,6 +32,7 @@ export function Sidebar({ mobileOpen = false, onClose, variant = 'permanent' }: 
     { text: 'Dashboard', icon: <DashboardIcon />, path: '/app/dashboard' },
     { text: 'Agenda', icon: <CalendarMonthIcon />, path: '/app/agenda' },
     { text: 'Clientes', icon: <PeopleIcon />, path: '/app/clientes' },
+    { text: 'Funcionários', icon: <BadgeIcon />, path: '/app/funcionarios' },
     { text: 'Serviços', icon: <ContentCutIcon />, path: '/app/servicos' },
     { text: 'Meu Salão', icon: <StorefrontIcon />, path: '/app/meu-salao' },
     { text: 'Configurações', icon: <SettingsIcon />, path: '/app/configuracoes' },
@@ -52,25 +55,11 @@ export function Sidebar({ mobileOpen = false, onClose, variant = 'permanent' }: 
         flexDirection: 'column',
       }}
     >
-      {/* Logo Area */}
+      {/* Identidade visual do salão */}
       <Box sx={{ p: 3, display: 'flex', alignItems: 'center', gap: 1.5 }}>
-        <Box
-          sx={{
-            width: 40,
-            height: 40,
-            borderRadius: 2,
-            background: theme.palette.custom.gradients.primary,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            color: 'white',
-          }}
-        >
-          <ContentCutIcon />
+        <Box sx={{ flexGrow: 1, minWidth: 0 }}>
+          <SalonLogo size={40} showName />
         </Box>
-        <Typography variant="h6" fontWeight="bold" color="primary.main" sx={{ flexGrow: 1 }}>
-          Salão Conecta
-        </Typography>
         {variant === 'temporary' && (
           <IconButton onClick={onClose} size="small" aria-label="Fechar menu">
             <CloseIcon />
