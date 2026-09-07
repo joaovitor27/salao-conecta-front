@@ -11,6 +11,7 @@ import {
   Tabs,
   TextField,
   Typography,
+  Switch,
 } from '@mui/material';
 import SaveIcon from '@mui/icons-material/Save';
 import UploadIcon from '@mui/icons-material/Upload';
@@ -24,6 +25,7 @@ import { PalettePreview } from '@/components/branding/PalettePreview';
 import { useBranding } from '@/contexts/BrandingContext';
 import { usePermissions } from '@/hooks/usePermissions';
 import { salonService, type SalonProfile as SalonProfileData } from '@/services/salon.service';
+import { businessService } from '@/services/business.service';
 import { buildBrandPalette, DEFAULT_PRIMARY_COLOR, type BrandColorsInput } from '@/theme/brandPalette';
 
 const MAX_LOGO_SIZE = 2 * 1024 * 1024;
@@ -53,6 +55,152 @@ const toFormState = (profile: SalonProfileData): FormState => ({
     accent: profile.accent_color,
   },
 });
+
+const DAYS_OF_WEEK = [
+  { key: 'segunda', label: 'Segunda-feira' },
+  { key: 'terca', label: 'Terça-feira' },
+  { key: 'quarta', label: 'Quarta-feira' },
+  { key: 'quinta', label: 'Quinta-feira' },
+  { key: 'sexta', label: 'Sexta-feira' },
+  { key: 'sabado', label: 'Sábado' },
+  { key: 'domingo', label: 'Domingo' },
+];
+
+function OperatingHoursTab() {
+  const [hours, setHours] = useState<Record<string, any>>({});
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const { isManagerOrOwner } = usePermissions();
+
+  useEffect(() => {
+    loadHours();
+  }, []);
+
+  const loadHours = async () => {
+    setLoading(true);
+    try {
+      const data = await businessService.getOperatingHours();
+      setHours(data.operating_hours || {});
+    } catch {
+      toast.error('Erro ao carregar horários.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      await businessService.updateOperatingHours(hours);
+      toast.success('Horários atualizados com sucesso!');
+    } catch {
+      toast.error('Erro ao atualizar horários.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleChange = (day: string, field: 'open' | 'close' | 'closed', value: any) => {
+    setHours((prev) => {
+      const current = prev[day] || { open: '', close: '', closed: false };
+      return {
+        ...prev,
+        [day]: { ...current, [field]: value },
+      };
+    });
+  };
+
+  const setPreset24h = () => {
+    const newHours: Record<string, any> = {};
+    DAYS_OF_WEEK.forEach((d) => {
+      newHours[d.key] = { open: '00:00', close: '23:59', closed: false };
+    });
+    setHours(newHours);
+  };
+
+  const setPresetBusiness = () => {
+    const newHours: Record<string, any> = {};
+    DAYS_OF_WEEK.forEach((d) => {
+      if (d.key === 'sabado') {
+        newHours[d.key] = { open: '08:00', close: '12:00', closed: false };
+      } else if (d.key === 'domingo') {
+        newHours[d.key] = { open: '', close: '', closed: true };
+      } else {
+        newHours[d.key] = { open: '08:00', close: '18:00', closed: false };
+      }
+    });
+    setHours(newHours);
+  };
+
+  if (loading) {
+    return <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}><CircularProgress /></Box>;
+  }
+
+  return (
+    <Paper variant="outlined" sx={{ p: 3, borderRadius: 2, maxWidth: 800 }}>
+      <Box sx={{ mb: 3, display: 'flex', gap: 2 }}>
+        <Button variant="outline" size="sm" onClick={setPreset24h} disabled={!isManagerOrOwner}>
+          24 Horas
+        </Button>
+        <Button variant="outline" size="sm" onClick={setPresetBusiness} disabled={!isManagerOrOwner}>
+          Horário Comercial
+        </Button>
+      </Box>
+
+      <Stack spacing={2}>
+        {DAYS_OF_WEEK.map((day) => {
+          const current = hours[day.key] || { open: '', close: '', closed: false };
+          return (
+            <Box key={day.key} sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+              <Box sx={{ width: 120 }}>
+                <Typography variant="body2">{day.label}</Typography>
+              </Box>
+              <Switch
+                checked={!current.closed}
+                onChange={(e) => handleChange(day.key, 'closed', !e.target.checked)}
+                disabled={!isManagerOrOwner}
+              />
+              <Typography variant="body2" sx={{ width: 60, color: current.closed ? 'text.secondary' : 'text.primary' }}>
+                {current.closed ? 'Fechado' : 'Aberto'}
+              </Typography>
+              {!current.closed && (
+                <>
+                  <TextField
+                    type="time"
+                    size="small"
+                    value={current.open || ''}
+                    onChange={(e) => handleChange(day.key, 'open', e.target.value)}
+                    disabled={!isManagerOrOwner}
+                    InputLabelProps={{ shrink: true }}
+                    sx={{ width: 130 }}
+                  />
+                  <Typography variant="body2">às</Typography>
+                  <TextField
+                    type="time"
+                    size="small"
+                    value={current.close || ''}
+                    onChange={(e) => handleChange(day.key, 'close', e.target.value)}
+                    disabled={!isManagerOrOwner}
+                    InputLabelProps={{ shrink: true }}
+                    sx={{ width: 130 }}
+                  />
+                </>
+              )}
+            </Box>
+          );
+        })}
+      </Stack>
+
+      {isManagerOrOwner && (
+        <Box sx={{ mt: 4, display: 'flex', justifyContent: 'flex-end' }}>
+          <Button variant="hero" onClick={handleSave} disabled={saving} startIcon={<SaveIcon />}>
+            {saving ? 'Salvando...' : 'Salvar horários'}
+          </Button>
+        </Box>
+      )}
+    </Paper>
+  );
+}
 
 export default function SalonProfile() {
   const { applyBranding, setPreviewColors } = useBranding();
@@ -196,7 +344,7 @@ export default function SalonProfile() {
             Configure o nome, o logo e as cores que o sistema usa para o seu salão.
           </Typography>
         </Box>
-        {isManagerOrOwner && (
+        {isManagerOrOwner && tab !== 3 && (
           <Stack direction="row" spacing={1}>
             <Button variant="outline" onClick={handleDiscard} disabled={saving}>
               Descartar
@@ -218,6 +366,7 @@ export default function SalonProfile() {
         <Tab label="Identidade" />
         <Tab label="Cores do sistema" />
         <Tab label="Contato" />
+        <Tab label="Horários" />
       </Tabs>
 
       {tab === 0 && (
@@ -377,6 +526,10 @@ export default function SalonProfile() {
             />
           </Stack>
         </Paper>
+      )}
+
+      {tab === 3 && (
+        <OperatingHoursTab />
       )}
     </Box>
   );

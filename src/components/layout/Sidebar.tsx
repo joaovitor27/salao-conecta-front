@@ -32,7 +32,7 @@ export function Sidebar({ mobileOpen = false, onClose, variant = 'permanent' }: 
     { text: 'Dashboard', icon: <DashboardIcon />, path: '/app/dashboard' },
     { text: 'Agenda', icon: <CalendarMonthIcon />, path: '/app/agenda' },
     { text: 'Clientes', icon: <PeopleIcon />, path: '/app/clientes' },
-    { text: 'Funcionários', icon: <BadgeIcon />, path: '/app/funcionarios' },
+    { text: 'Colaboradores', icon: <BadgeIcon />, path: '/app/colaboradores' },
     { text: 'Serviços', icon: <ContentCutIcon />, path: '/app/servicos' },
     { text: 'Meu Salão', icon: <StorefrontIcon />, path: '/app/meu-salao' },
     { text: 'Configurações', icon: <SettingsIcon />, path: '/app/configuracoes' },

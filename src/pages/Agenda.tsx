@@ -25,6 +25,9 @@ import { businessService, type Employee, type ServiceSalon } from '@/services/bu
 // ──────────────────────────────────────────────────────────
 
 function toCalendarAppointment(appt: Appointment): CalendarAppointment {
+  const profNames = Array.from(new Set(appt.items?.map(i => i.professional_name).filter(Boolean)));
+  const profNameStr = profNames.length > 1 ? 'Vários profissionais' : (profNames[0] || 'Sem profissional');
+
   return {
     id: appt.id,
     start: appt.start_time ? new Date(appt.start_time) : new Date(),
@@ -32,7 +35,7 @@ function toCalendarAppointment(appt: Appointment): CalendarAppointment {
     status: appt.status,
     statusDisplay: appt.status_display,
     clientName: appt.client?.name || 'Cliente',
-    professionalName: appt.professional?.full_name || 'Sem profissional',
+    professionalName: profNameStr,
     services: appt.items?.map(i => ({ name: i.service_name, price: i.price })) || [],
     totalPrice: appt.total_price || '0.00',
     discount: appt.discount || '0.00',

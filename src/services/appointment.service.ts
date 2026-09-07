@@ -7,6 +7,8 @@ export interface AppointmentItem {
   service_name: string;
   price: string;
   duration_minutes: number;
+  professional: string | null;
+  professional_name: string | null;
 }
 
 export interface Appointment {
@@ -17,11 +19,6 @@ export interface Appointment {
     phone: string;
     cpf?: string;
   };
-  professional: {
-    id: string;
-    full_name: string;
-    role: string;
-  } | null;
   items: AppointmentItem[];
   start_time: string | null;
   end_time: string | null;
@@ -29,6 +26,7 @@ export interface Appointment {
   status_display: string;
   total_price: string;
   discount: string;
+  surcharge: string;
   notes: string;
   created_at: string;
   updated_at: string;
@@ -37,14 +35,15 @@ export interface Appointment {
 export interface AppointmentItemCreate {
   service_id: number;
   price?: string | number;
+  professional_id?: string | null;
 }
 
 export interface AppointmentCreate {
-  client_id: string; // UUID
-  professional_id?: string | null; // UUID
+  client_id?: string | null; // UUID
   services: AppointmentItemCreate[];
   start_time: string; // ISO String
   discount?: string | number;
+  surcharge?: string | number;
   notes?: string;
 }
 

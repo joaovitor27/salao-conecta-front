@@ -1,6 +1,5 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
-  Alert,
   Dialog,
   DialogTitle,
   DialogContent,
@@ -34,19 +33,19 @@ interface SelectedService {
   service: ServiceSalon;
   price: string;
   duration_minutes: number;
+  professional: Employee | null;
 }
 
 export const NewAppointmentModal: React.FC<Props> = ({ open, appointmentId, initialDate, onClose, onSuccess }) => {
   const [formData, setFormData] = useState({
     client_id: '',
-    professional_id: '',
     start_time: '',
     discount: '0.00',
+    surcharge: '0.00',
     notes: '',
   });
 
   const [selectedServices, setSelectedServices] = useState<SelectedService[]>([]);
-
   const [isNewClient, setIsNewClient] = useState(false);
   const [newClientData, setNewClientData] = useState({ name: '', phone: '', cpf: '' });
 
@@ -71,9 +70,9 @@ export const NewAppointmentModal: React.FC<Props> = ({ open, appointmentId, init
       } else {
         setFormData({
           client_id: '',
-          professional_id: '',
           start_time: initialDate || '',
           discount: '0.00',
+          surcharge: '0.00',
           notes: '',
         });
         setSelectedServices([]);
@@ -98,29 +97,35 @@ export const NewAppointmentModal: React.FC<Props> = ({ open, appointmentId, init
       }
 
       setFormData({
-        client_id: appt.client.id,
-        professional_id: appt.professional?.id || '',
+        client_id: appt.client?.id || '',
         start_time: localStart,
         discount: appt.discount || '0.00',
+        surcharge: appt.surcharge || '0.00',
         notes: appt.notes || '',
       });
 
       const servs = await businessService.getServices();
+      const emps = await businessService.getEmployees();
       setAvailableServices(servs);
+      setEmployees(emps);
       
       const selected = appt.items.map((item: any) => {
         const s = servs.find(x => x.id === item.service);
+        const p = emps.find(e => e.id === item.professional) || null;
         return {
           service: s || { id: item.service, service_name: item.service_name, price: item.price, duration_minutes: item.duration_minutes } as any,
           price: item.price,
-          duration_minutes: item.duration_minutes
+          duration_minutes: item.duration_minutes,
+          professional: p,
         };
       });
       setSelectedServices(selected);
 
-      const clientExists = customers.find(c => c.id === appt.client.id);
-      if (!clientExists) {
-        setCustomers(prev => [...prev, appt.client]);
+      if (appt.client) {
+        const clientExists = customers.find(c => c.id === appt.client.id);
+        if (!clientExists) {
+          setCustomers(prev => [...prev, appt.client]);
+        }
       }
     } catch (error) {
       toast.error('Erro ao carregar dados do agendamento.');
@@ -179,7 +184,7 @@ export const NewAppointmentModal: React.FC<Props> = ({ open, appointmentId, init
 
   const handleServiceAdd = (service: ServiceSalon | null) => {
     if (service) {
-      setSelectedServices([...selectedServices, { service, price: service.price, duration_minutes: service.duration_minutes }]);
+      setSelectedServices([...selectedServices, { service, price: service.price, duration_minutes: service.duration_minutes, professional: null }]);
       if (errors.services) setErrors({ ...errors, services: [] });
     }
   };
@@ -193,6 +198,12 @@ export const NewAppointmentModal: React.FC<Props> = ({ open, appointmentId, init
   const handleServiceFieldChange = (index: number, field: 'price' | 'duration_minutes', value: string | number) => {
     const newServices = [...selectedServices];
     newServices[index] = { ...newServices[index], [field]: value };
+    setSelectedServices(newServices);
+  };
+
+  const handleServiceProfessionalChange = (index: number, professional: Employee | null) => {
+    const newServices = [...selectedServices];
+    newServices[index] = { ...newServices[index], professional };
     setSelectedServices(newServices);
   };
 
@@ -214,16 +225,15 @@ export const NewAppointmentModal: React.FC<Props> = ({ open, appointmentId, init
     try {
       let finalClientId = formData.client_id;
 
-      if (isNewClient) {
+      if (isNewClient && (newClientData.name || newClientData.phone)) {
+        if (!newClientData.name || !newClientData.phone) {
+           setErrors({ phone: ['Nome e telefone são obrigatórios para novo cliente.'] });
+           setLoading(false);
+           return;
+        }
         const createdCustomer = await businessService.createCustomer(newClientData);
         finalClientId = createdCustomer.id;
         setCustomers([...customers, createdCustomer]);
-      }
-
-      if (!finalClientId) {
-        setErrors({ client_id: ['Selecione um cliente.'] });
-        setLoading(false);
-        return;
       }
 
       if (selectedServices.length === 0) {
@@ -233,15 +243,16 @@ export const NewAppointmentModal: React.FC<Props> = ({ open, appointmentId, init
       }
 
       const payload = {
-        client_id: finalClientId,
+        client_id: finalClientId || null,
         services: selectedServices.map(s => ({
           service_id: s.service.id,
           price: s.price,
-          duration_minutes: s.duration_minutes
+          duration_minutes: s.duration_minutes,
+          professional_id: s.professional?.id || null,
         })),
         start_time: getIsoWithOffset(formData.start_time),
-        professional_id: formData.professional_id || null,
         discount: formData.discount,
+        surcharge: formData.surcharge,
         notes: formData.notes,
       };
 
@@ -289,29 +300,17 @@ export const NewAppointmentModal: React.FC<Props> = ({ open, appointmentId, init
     }
   };
 
-  // Profissionais que realizam TODOS os serviços escolhidos.
-  // Quem ainda não tem serviços vinculados continua disponível (sem restrição cadastrada).
-  const filteredEmployees = useMemo(() => {
-    const ids = selectedServices.map((item) => item.service.id);
-    if (ids.length === 0) return employees;
+  const getFilteredEmployeesForService = (serviceId: number) => {
     return employees.filter((employee) => {
       const links = employee.services ?? [];
       if (links.length === 0) return true;
-      return ids.every((id) => links.some((link) => link.service_id === id));
+      return links.some((link) => link.service_id === serviceId);
     });
-  }, [employees, selectedServices]);
-
-  // Limpa o profissional que não atende mais a combinação de serviços
-  useEffect(() => {
-    if (formData.professional_id && !filteredEmployees.some((e) => e.id === formData.professional_id)) {
-      setFormData((current) => ({ ...current, professional_id: '' }));
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filteredEmployees]);
+  };
 
   const totalDuration = selectedServices.reduce((sum, item) => sum + (item.duration_minutes || 0), 0);
   const totalPrice = selectedServices.reduce((sum, item) => sum + (parseFloat(item.price) || 0), 0);
-  const finalPrice = Math.max(0, totalPrice - (parseFloat(formData.discount) || 0));
+  const finalPrice = Math.max(0, totalPrice + (parseFloat(formData.surcharge) || 0) - (parseFloat(formData.discount) || 0));
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
@@ -329,7 +328,7 @@ export const NewAppointmentModal: React.FC<Props> = ({ open, appointmentId, init
               <Box sx={{ bgcolor: 'custom.gray.50', p: 2, borderRadius: 2 }}>
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
                   <Typography variant="subtitle2" fontWeight="bold">
-                    Cliente
+                    Cliente (Opcional)
                   </Typography>
                   <Button variant="link" size="sm" onClick={() => setIsNewClient(!isNewClient)}>
                     {isNewClient ? 'Selecionar Existente' : 'Cadastrar Novo Cliente'}
@@ -344,8 +343,8 @@ export const NewAppointmentModal: React.FC<Props> = ({ open, appointmentId, init
                       value={newClientData.name}
                       onChange={handleNewClientChange}
                       size="small"
-                      required
                       fullWidth
+                      helperText="Preencha nome e telefone se quiser cadastrar o cliente."
                     />
                     <TextField
                       label="Telefone"
@@ -353,7 +352,6 @@ export const NewAppointmentModal: React.FC<Props> = ({ open, appointmentId, init
                       value={newClientData.phone}
                       onChange={handleNewClientChange}
                       size="small"
-                      required
                       fullWidth
                       error={!!errors.phone}
                       helperText={errors.phone?.join(' ')}
@@ -364,7 +362,6 @@ export const NewAppointmentModal: React.FC<Props> = ({ open, appointmentId, init
                       value={newClientData.cpf}
                       onChange={handleNewClientChange}
                       size="small"
-                      required
                       fullWidth
                       error={!!errors.cpf}
                       helperText={errors.cpf?.join(' ')}
@@ -384,10 +381,10 @@ export const NewAppointmentModal: React.FC<Props> = ({ open, appointmentId, init
                     renderInput={(params) => (
                       <TextField
                         {...params}
-                        label="Buscar Cliente *"
+                        label="Buscar Cliente"
                         size="small"
                         error={!!errors.client_id}
-                        helperText={errors.client_id?.join(' ')}
+                        helperText={errors.client_id?.join(' ') || "Deixe vazio se o cliente não se identificou"}
                         slotProps={{
                           input: {
                             ...params.InputProps,
@@ -423,34 +420,49 @@ export const NewAppointmentModal: React.FC<Props> = ({ open, appointmentId, init
                 />
 
                 {selectedServices.length > 0 && (
-                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-                    {selectedServices.map((item, index) => (
-                      <Box key={index} sx={{ display: 'flex', alignItems: 'center', gap: 1, p: 1, bgcolor: 'background.default', border: '1px solid', borderColor: 'divider', borderRadius: 1 }}>
-                        <Box sx={{ flex: 1 }}>
-                          <Typography variant="body2" fontWeight="bold">{item.service.service_name}</Typography>
+                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                    {selectedServices.map((item, index) => {
+                      const serviceEmployees = getFilteredEmployeesForService(item.service.id);
+                      return (
+                        <Box key={index} sx={{ display: 'flex', flexDirection: 'column', gap: 1, p: 1, bgcolor: 'background.default', border: '1px solid', borderColor: 'divider', borderRadius: 1 }}>
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                            <Box sx={{ flex: 1 }}>
+                              <Typography variant="body2" fontWeight="bold">{item.service.service_name}</Typography>
+                            </Box>
+                            <TextField
+                              size="small"
+                              label="Minutos"
+                              type="number"
+                              value={item.duration_minutes}
+                              onChange={(e) => handleServiceFieldChange(index, 'duration_minutes', parseInt(e.target.value) || 0)}
+                              sx={{ width: 80 }}
+                            />
+                            <TextField
+                              size="small"
+                              label="Preço"
+                              type="number"
+                              value={item.price}
+                              onChange={(e) => handleServiceFieldChange(index, 'price', e.target.value)}
+                              sx={{ width: 100 }}
+                              slotProps={{ htmlInput: { step: '0.01' } }}
+                            />
+                            <IconButton size="small" color="error" onClick={() => handleServiceRemove(index)}>
+                              <DeleteIcon fontSize="small" />
+                            </IconButton>
+                          </Box>
+                          <Autocomplete
+                            size="small"
+                            options={serviceEmployees}
+                            getOptionLabel={(option) => option.full_name}
+                            value={item.professional}
+                            onChange={(_e, newValue) => handleServiceProfessionalChange(index, newValue)}
+                            renderInput={(params) => (
+                              <TextField {...params} label="Profissional" placeholder="Qualquer profissional" />
+                            )}
+                          />
                         </Box>
-                        <TextField
-                          size="small"
-                          label="Minutos"
-                          type="number"
-                          value={item.duration_minutes}
-                          onChange={(e) => handleServiceFieldChange(index, 'duration_minutes', parseInt(e.target.value) || 0)}
-                          sx={{ width: 80 }}
-                        />
-                        <TextField
-                          size="small"
-                          label="Preço"
-                          type="number"
-                          value={item.price}
-                          onChange={(e) => handleServiceFieldChange(index, 'price', e.target.value)}
-                          sx={{ width: 100 }}
-                          slotProps={{ htmlInput: { step: '0.01' } }}
-                        />
-                        <IconButton size="small" color="error" onClick={() => handleServiceRemove(index)}>
-                          <DeleteIcon fontSize="small" />
-                        </IconButton>
-                      </Box>
-                    ))}
+                      );
+                    })}
                     
                     <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 1, p: 1, bgcolor: 'custom.gray.50', borderRadius: 1 }}>
                       <Typography variant="body2" color="text.secondary">Duração total: {totalDuration} min</Typography>
@@ -462,59 +474,13 @@ export const NewAppointmentModal: React.FC<Props> = ({ open, appointmentId, init
 
               <Divider />
 
-              <Autocomplete
-                options={filteredEmployees}
-                getOptionLabel={(option) => option.full_name}
-                value={filteredEmployees.find((e) => e.id === formData.professional_id) || null}
-                onChange={(_e, newValue) => {
-                  setFormData({ ...formData, professional_id: newValue ? newValue.id : '' });
-                  if (errors.professional_id) setErrors({ ...errors, professional_id: [] });
-                }}
-                noOptionsText="Nenhum profissional realiza os serviços escolhidos"
-                renderOption={(props, option) => (
-                  <li {...props} key={option.id}>
-                    <Box>
-                      <Typography variant="body2">{option.full_name}</Typography>
-                      <Typography variant="caption" color="text.secondary">
-                        {option.services?.length
-                          ? option.services.map((s) => s.service_name).join(', ')
-                          : 'Sem serviços vinculados'}
-                      </Typography>
-                    </Box>
-                  </li>
-                )}
-                renderInput={(params) => (
-                  <TextField
-                    {...params}
-                    label="Profissional (Opcional)"
-                    size="small"
-                    error={!!errors.professional_id}
-                    helperText={
-                      errors.professional_id?.join(' ') ||
-                      (selectedServices.length > 0
-                        ? `${filteredEmployees.length} profissional(is) realiza(m) os serviços escolhidos`
-                        : 'Escolha os serviços para filtrar quem os realiza')
-                    }
-                  />
-                )}
-              />
-
-              {selectedServices.length > 0 && filteredEmployees.length === 0 && (
-                <Alert severity="warning">
-                  Nenhum profissional cadastrado realiza todos os serviços escolhidos. Vincule os serviços em
-                  Funcionários ou agende sem profissional definido.
-                </Alert>
-              )}
-
-              <Divider />
-
               <TimeSlotPicker
                 value={formData.start_time}
                 onChange={(next) => {
                   setFormData((current) => ({ ...current, start_time: next }));
                   if (errors.start_time) setErrors({ ...errors, start_time: [] });
                 }}
-                professionalId={formData.professional_id || null}
+                professionalId={selectedServices[0]?.professional?.id || null}
                 serviceIds={selectedServices.map((item) => item.service.id)}
                 duration={totalDuration}
                 appointmentId={appointmentId}
@@ -522,6 +488,18 @@ export const NewAppointmentModal: React.FC<Props> = ({ open, appointmentId, init
               />
 
               <Box sx={{ display: 'flex', gap: 2 }}>
+                <TextField
+                  label="Acréscimo (R$)"
+                  name="surcharge"
+                  type="number"
+                  size="small"
+                  value={formData.surcharge}
+                  onChange={handleChange}
+                  error={!!errors.surcharge}
+                  helperText={errors.surcharge?.join(' ')}
+                  fullWidth
+                  slotProps={{ htmlInput: { step: '0.01' } }}
+                />
                 <TextField
                   label="Desconto (R$)"
                   name="discount"

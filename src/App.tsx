@@ -16,8 +16,10 @@ import Agenda from '@/pages/Agenda.tsx';
 import SalonProfile from '@/pages/SalonProfile.tsx';
 import Employees from '@/pages/Employees.tsx';
 import Customers from '@/pages/Customers.tsx';
+import Services from '@/pages/Services.tsx';
 import { PublicRoute } from '@/routes/PublicRoute.tsx';
 import { AppLayout } from '@/components/layout/AppLayout.tsx';
+import { BookingPage } from '@/pages/BookingPage.tsx';
 
 /** Monta o tema do MUI a partir da identidade visual do salão ativo. */
 function BrandedTheme({ children }: { children: ReactNode }) {
@@ -49,11 +51,13 @@ export default function App() {
                 <Route element={<AppLayout />}>
                   <Route path="/app/dashboard" element={<Dashboard />} />
                   <Route path="/app/agenda" element={<Agenda />} />
-                  <Route path="/app/funcionarios" element={<Employees />} />
+                  <Route path="/app/colaboradores" element={<Employees />} />
                   <Route path="/app/clientes" element={<Customers />} />
+                  <Route path="/app/servicos" element={<Services />} />
                   <Route path="/app/meu-salao" element={<SalonProfile />} />
                 </Route>
               </Route>
+              <Route path="/:slug" element={<BookingPage />} />
             </Routes>
           </BrowserRouter>
         </BrandedTheme>
