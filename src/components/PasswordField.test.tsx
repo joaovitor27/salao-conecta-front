@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { ThemeProvider } from '@mui/material/styles';
@@ -44,7 +44,7 @@ describe('PasswordField Component', () => {
     render(
       <ThemeProvider theme={theme}>
         <PasswordField password="MyPassword" setPassword={vi.fn()} />
-      </ThemeProvider>,
+      </ThemeProvider>
     );
 
     const input = screen.getByPlaceholderText('Sua Senha');

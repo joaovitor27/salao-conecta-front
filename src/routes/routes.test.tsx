@@ -1,4 +1,3 @@
-import React from 'react';
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { describe, it, expect, vi, afterEach } from 'vitest';
@@ -9,10 +8,7 @@ import * as AuthContextModule from '@/contexts/AuthContext';
 describe('Route Guards (PrivateRoute & PublicRoute)', () => {
   const mockUseAuth = vi.spyOn(AuthContextModule, 'useAuth');
 
-  const buildAuthState = (
-    isAuthenticated: boolean,
-    isLoading = false,
-  ): ReturnType<typeof AuthContextModule.useAuth> => ({
+  const buildAuthState = (isAuthenticated: boolean, isLoading = false): ReturnType<typeof AuthContextModule.useAuth> => ({
     user: null,
     isAuthenticated,
     isLoading,
@@ -39,7 +35,7 @@ describe('Route Guards (PrivateRoute & PublicRoute)', () => {
           </Route>
           <Route path="/login" element={<div>Página de Login</div>} />
         </Routes>
-      </MemoryRouter>,
+      </MemoryRouter>
     );
 
     expect(screen.getByText('Página de Login')).toBeInTheDocument();
@@ -57,7 +53,7 @@ describe('Route Guards (PrivateRoute & PublicRoute)', () => {
           </Route>
           <Route path="/login" element={<div>Página de Login</div>} />
         </Routes>
-      </MemoryRouter>,
+      </MemoryRouter>
     );
 
     expect(screen.getByText('Área Restrita')).toBeInTheDocument();
@@ -74,7 +70,7 @@ describe('Route Guards (PrivateRoute & PublicRoute)', () => {
           </Route>
           <Route path="/app/dashboard" element={<div>Painel Principal</div>} />
         </Routes>
-      </MemoryRouter>,
+      </MemoryRouter>
     );
 
     expect(screen.getByText('Painel Principal')).toBeInTheDocument();

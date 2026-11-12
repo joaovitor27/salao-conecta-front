@@ -21,13 +21,18 @@ export function ProfessionalSelection({ selectedServiceIds, selectedProfessional
   useEffect(() => {
     if (!slug) return;
     setLoading(true);
-    bookingService.getProfessionals(slug, selectedServiceIds)
+    bookingService
+      .getProfessionals(slug, selectedServiceIds)
       .then(setProfessionals)
       .finally(() => setLoading(false));
   }, [slug, selectedServiceIds]);
 
   if (loading) {
-    return <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}><CircularProgress /></Box>;
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
+        <CircularProgress />
+      </Box>
+    );
   }
 
   return (
@@ -36,8 +41,7 @@ export function ProfessionalSelection({ selectedServiceIds, selectedProfessional
         Você tem preferência por algum profissional?
       </Typography>
       <Grid container spacing={2} justifyContent="center">
-        {/* Opção "Sem preferência" */}
-        <Grid item xs={12} sm={6} md={4}>
+        <Grid size={{ xs: 12, sm: 6, md: 4 }}>
           <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
             <Card
               onClick={() => onChange(null)}
@@ -48,9 +52,7 @@ export function ProfessionalSelection({ selectedServiceIds, selectedProfessional
               }}
             >
               <CardContent sx={{ p: 3, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                <Avatar sx={{ width: 64, height: 64, mb: 2, bgcolor: theme.palette.grey[300] }}>
-                  ?
-                </Avatar>
+                <Avatar sx={{ width: 64, height: 64, mb: 2, bgcolor: theme.palette.grey[300] }}>?</Avatar>
                 <Typography variant="subtitle1" fontWeight="bold">
                   Sem preferência
                 </Typography>
@@ -66,7 +68,7 @@ export function ProfessionalSelection({ selectedServiceIds, selectedProfessional
         {professionals.map((prof) => {
           const isSelected = selectedProfessionalId === prof.id;
           return (
-            <Grid item xs={12} sm={6} md={4} key={prof.id}>
+            <Grid size={{ xs: 12, sm: 6, md: 4 }} key={prof.id}>
               <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
                 <Card
                   onClick={() => onChange(prof.id)}

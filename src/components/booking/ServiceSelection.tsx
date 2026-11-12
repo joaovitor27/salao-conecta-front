@@ -20,7 +20,8 @@ export function ServiceSelection({ selectedServiceIds, onChange }: ServiceSelect
 
   useEffect(() => {
     if (!slug) return;
-    bookingService.getServices(slug)
+    bookingService
+      .getServices(slug)
       .then(setServices)
       .finally(() => setLoading(false));
   }, [slug]);
@@ -34,10 +35,14 @@ export function ServiceSelection({ selectedServiceIds, onChange }: ServiceSelect
   };
 
   if (loading) {
-    return <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}><CircularProgress /></Box>;
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
+        <CircularProgress />
+      </Box>
+    );
   }
 
-  const selectedServices = services.filter(s => selectedServiceIds.includes(s.id));
+  const selectedServices = services.filter((s) => selectedServiceIds.includes(s.id));
   const totalDuration = selectedServices.reduce((acc, s) => acc + s.duration_minutes, 0);
   const totalPrice = selectedServices.reduce((acc, s) => acc + parseFloat(s.price), 0);
 
@@ -50,11 +55,8 @@ export function ServiceSelection({ selectedServiceIds, onChange }: ServiceSelect
         {services.map((service) => {
           const isSelected = selectedServiceIds.includes(service.id);
           return (
-            <Grid item xs={12} sm={6} md={4} key={service.id}>
-              <motion.div
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-              >
+            <Grid size={{ xs: 12, sm: 6, md: 4 }} key={service.id}>
+              <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
                 <Card
                   onClick={() => toggleService(service.id)}
                   sx={{
@@ -65,19 +67,21 @@ export function ServiceSelection({ selectedServiceIds, onChange }: ServiceSelect
                   }}
                 >
                   {isSelected && (
-                    <CheckCircleIcon 
-                      sx={{ 
-                        position: 'absolute', top: 8, right: 8, 
-                        color: theme.palette.custom.accent.main 
-                      }} 
+                    <CheckCircleIcon
+                      sx={{
+                        position: 'absolute',
+                        top: 8,
+                        right: 8,
+                        color: theme.palette.custom.accent.main,
+                      }}
                     />
                   )}
                   {service.image_url && (
-                    <Box 
-                      component="img" 
-                      src={service.image_url} 
-                      alt={service.service_name} 
-                      sx={{ width: '100%', height: 120, objectFit: 'cover', borderTopLeftRadius: 'inherit', borderTopRightRadius: 'inherit' }} 
+                    <Box
+                      component="img"
+                      src={service.image_url}
+                      alt={service.service_name}
+                      sx={{ width: '100%', height: 120, objectFit: 'cover', borderTopLeftRadius: 'inherit', borderTopRightRadius: 'inherit' }}
                     />
                   )}
                   <CardContent sx={{ p: 2, textAlign: 'left', pt: service.image_url ? 2 : 3 }}>
@@ -100,9 +104,21 @@ export function ServiceSelection({ selectedServiceIds, onChange }: ServiceSelect
           );
         })}
       </Grid>
-      
+
       {selectedServiceIds.length > 0 && (
-        <Box sx={{ mt: 3, p: 2, bgcolor: 'background.paper', borderRadius: 2, border: 1, borderColor: 'divider', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <Box
+          sx={{
+            mt: 3,
+            p: 2,
+            bgcolor: 'background.paper',
+            borderRadius: 2,
+            border: 1,
+            borderColor: 'divider',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+          }}
+        >
           <Typography>
             {selectedServiceIds.length} {selectedServiceIds.length === 1 ? 'serviço selecionado' : 'serviços selecionados'} ({totalDuration} min)
           </Typography>

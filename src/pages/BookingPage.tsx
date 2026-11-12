@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Box, Stack, useTheme } from '@mui/material';
+import { Box, Stack } from '@mui/material';
 import { Button } from '@/components/ui/Button';
 import { BookingLayout } from '@/components/booking/BookingLayout';
 import { BookingStepper } from '@/components/booking/BookingStepper';
@@ -24,8 +24,6 @@ function BookingFlow() {
   const [clientPhone, setClientPhone] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [confirmation, setConfirmation] = useState<BookingConfirmation | null>(null);
-
-  const theme = useTheme();
 
   const handleNext = () => setActiveStep((prev) => prev + 1);
   const handleBack = () => setActiveStep((prev) => prev - 1);
