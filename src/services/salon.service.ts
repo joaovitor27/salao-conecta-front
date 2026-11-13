@@ -20,6 +20,7 @@ export interface SalonProfile extends SalonBranding {
   phone_number: string | null;
   website: string | null;
   operating_hours: Record<string, unknown> | null;
+  require_professional_choice?: boolean;
 }
 
 export interface SalonProfilePayload {
@@ -33,6 +34,7 @@ export interface SalonProfilePayload {
   primary_color?: string;
   secondary_color?: string | null;
   accent_color?: string | null;
+  require_professional_choice?: boolean;
   /** Novo arquivo de logo. Envia como multipart automaticamente. */
   logo?: File | null;
 }

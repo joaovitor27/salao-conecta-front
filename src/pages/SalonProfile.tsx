@@ -38,6 +38,7 @@ interface FormState {
   email: string;
   phone_number: string;
   website: string;
+  require_professional_choice: boolean;
   colors: BrandColorsInput;
 }
 
@@ -49,6 +50,7 @@ const toFormState = (profile: SalonProfileData): FormState => ({
   email: profile.email ?? '',
   phone_number: profile.phone_number ?? '',
   website: profile.website ?? '',
+  require_professional_choice: Boolean(profile.require_professional_choice),
   colors: {
     primary: profile.primary_color || DEFAULT_PRIMARY_COLOR,
     secondary: profile.secondary_color,
@@ -294,6 +296,7 @@ export default function SalonProfile() {
         primary_color: form.colors.primary || DEFAULT_PRIMARY_COLOR,
         secondary_color: form.colors.secondary ?? null,
         accent_color: form.colors.accent ?? null,
+        require_professional_choice: form.require_professional_choice,
         ...(logoFile ? { logo: logoFile } : {}),
       });
 
@@ -407,6 +410,23 @@ export default function SalonProfile() {
                   minRows={3}
                   fullWidth
                 />
+                <Divider />
+                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 2 }}>
+                  <Box>
+                    <Typography variant="subtitle2" fontWeight="bold">
+                      Exigir escolha de profissional no auto agendamento
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      Quando desativado, a cliente pode escolher &ldquo;Indiferente&rdquo; e o salão define o profissional depois.
+                    </Typography>
+                  </Box>
+                  <Switch
+                    checked={form.require_professional_choice}
+                    onChange={(e) => setField('require_professional_choice', e.target.checked)}
+                    disabled={!isManagerOrOwner}
+                    inputProps={{ 'aria-label': 'Exigir escolha de profissional no auto agendamento' }}
+                  />
+                </Box>
               </Stack>
             </Paper>
           </Grid>

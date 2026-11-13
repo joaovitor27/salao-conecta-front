@@ -14,6 +14,7 @@ export interface SalonData {
   accent_color: string;
   phone_number: string;
   address_display: string;
+  require_professional_choice?: boolean;
 }
 
 export interface ServiceData {
@@ -33,9 +34,21 @@ export interface ProfessionalData {
 
 export interface AvailabilityParams {
   date: string;
-  service: string;
+  service?: string;
   professional?: string;
+  items?: string;
   duration?: number;
+  slot_minutes?: number;
+}
+
+export interface AvailabilitySlotSegment {
+  service_id: number;
+  service_name: string;
+  duration_minutes: number;
+  professional_id: string | null;
+  professional_name: string | null;
+  start_label: string;
+  end_label: string;
 }
 
 export interface AvailabilitySlot {
@@ -44,24 +57,53 @@ export interface AvailabilitySlot {
   label: string;
   end_label: string;
   period: 'morning' | 'afternoon' | 'evening';
+  segments?: AvailabilitySlotSegment[];
 }
 
 export interface AvailabilityResponse {
   date: string;
   professional_id: string | null;
   duration_minutes: number;
+  slot_minutes?: number;
   opens_at: string | null;
   closes_at: string | null;
   is_closed: boolean;
   slots: AvailabilitySlot[];
 }
 
+export interface BookingServiceItemPayload {
+  service_id: number;
+  professional_id?: string;
+}
+
+export interface CreateBookingSession {
+  start_time: string;
+  services: BookingServiceItemPayload[];
+}
+
 export interface CreateBookingData {
   client_name: string;
   client_phone: string;
-  start_time: string;
-  services: { service_id: number; professional_id?: string }[];
+  start_time?: string;
+  services?: BookingServiceItemPayload[];
+  sessions?: CreateBookingSession[];
   notes?: string;
+}
+
+export interface BookingConfirmationServiceItem {
+  service_name: string;
+  professional_name: string | null;
+  price: string;
+  duration_minutes: number;
+}
+
+export interface BookingConfirmationSession {
+  appointment_id: number;
+  date: string;
+  start_time: string;
+  end_time: string;
+  services: BookingConfirmationServiceItem[];
+  total_price: string;
 }
 
 export interface BookingConfirmation {
@@ -72,14 +114,18 @@ export interface BookingConfirmation {
   date: string;
   start_time: string;
   end_time: string;
-  services: {
-    service_name: string;
-    professional_name: string;
-    price: string;
-    duration_minutes: number;
-  }[];
+  services: BookingConfirmationServiceItem[];
+  sessions?: BookingConfirmationSession[];
   total_price: string;
   whatsapp_url: string;
+}
+
+export function buildSalonContactUrl(phone: string | null | undefined, message?: string): string {
+  const digits = (phone || '').replace(/\D/g, '');
+  if (!digits) return '';
+  const withCountry = digits.startsWith('55') ? digits : `55${digits}`;
+  const text = message || 'Olá! Gostaria de conversar sobre horários para um agendamento.';
+  return `https://wa.me/${withCountry}?text=${encodeURIComponent(text)}`;
 }
 
 export const bookingService = {
@@ -105,3 +151,4 @@ export const bookingService = {
     return responseData;
   },
 };
+

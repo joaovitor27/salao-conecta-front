@@ -17,6 +17,10 @@ export function useBooking() {
   return context;
 }
 
+export function useOptionalBooking(): BookingContextData | undefined {
+  return useContext(BookingContext);
+}
+
 export function BookingLayout({ children }: { children: ReactNode }) {
   const { slug } = useParams<{ slug: string }>();
   const [salon, setSalon] = useState<SalonData | null>(null);
